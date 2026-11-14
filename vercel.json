@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build --workspace=@pratham/admin",
+  "regions": ["bom1"],
+  "crons": [
+    {
+      "path": "/api/cron/generate-plans",
+      "schedule": "15 0 * * *"
+    },
+    {
+      "path": "/api/cron/generate-plans",
+      "schedule": "15 5 * * *"
+    },
+    {
+      "path": "/api/cron/generate-plans",
+      "schedule": "15 11 * * *"
+    },
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

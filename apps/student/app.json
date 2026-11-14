@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Pratham Tiffin",
+    "slug": "pratham-tiffin",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "pratham",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F3EFE6"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.pratham.tiffin"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F3EFE6"
+      },
+      "package": "com.pratham.tiffin",
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "root": "./app"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FC8019"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "web": {
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "replace-with-eas-project-id"
+      }
+    }
+  }
+}

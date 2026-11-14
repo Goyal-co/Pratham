@@ -1,0 +1,164 @@
+import { NextRequest } from "next/server";
+import { query } from "@pratham/db";
+import {
+  getZonedParts,
+  MEAL_LABELS,
+  minutesUntilCutoff,
+  timeToMinutes,
+  type MealType,
+} from "@pratham/shared";
+import { error, json } from "@/lib/api";
+import { getSettings, notifyAllStudents } from "@/lib/services";
+import { summarizeMenu } from "@/lib/menu";
+
+/**
+ * Open / close / tomorrow-menu reminders.
+ * Call every ~10–15 minutes (Vercel Cron).
+ * Auth: Authorization: Bearer $CRON_SECRET
+ */
+async function alreadySent(
+  kind: string,
+  refDate: string,
+  meal: MealType | "" = ""
+) {
+  const { rowCount } = await query(
+    `insert into reminder_log (kind, ref_date, meal_key)
+     values ($1, $2::date, $3)
+     on conflict (kind, ref_date, meal_key) do nothing
+     returning id`,
+    [kind, refDate, meal || ""]
+  );
+  // true = already sent (conflict / no insert)
+  return !rowCount;
+}
+
+async function run(req: NextRequest) {
+  const secret =
+    process.env.CRON_SECRET || process.env.BOOTSTRAP_SECRET || "pratham-bootstrap";
+  const header = req.headers.get("authorization") || "";
+  const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const provided =
+    bearer || req.nextUrl.searchParams.get("secret") || "";
+  if (provided !== secret) return error("Forbidden", 403);
+
+  const settings = await getSettings();
+  const tz = settings.timezone || "Asia/Kolkata";
+  const now = new Date();
+  const { dateStr, minutes } = getZonedParts(now, tz);
+  const lead = Number(
+    (settings as { reminder_lead_minutes?: number }).reminder_lead_minutes ?? 30
+  );
+  const cutoffs = {
+    breakfast: settings.breakfast_cutoff,
+    lunch: settings.lunch_cutoff,
+    dinner: settings.dinner_cutoff,
+  } as Record<MealType, string>;
+
+  const sent: string[] = [];
+
+  // —— Closing soon (per meal) ——
+  for (const meal of ["breakfast", "lunch", "dinner"] as MealType[]) {
+    const until = minutesUntilCutoff(meal, cutoffs, now, tz);
+    if (until > 0 && until <= lead) {
+      const kind = `closing_${meal}`;
+      if (!(await alreadySent(kind, dateStr, meal))) {
+        const label = MEAL_LABELS[meal];
+        await notifyAllStudents(
+          `${label} closing soon`,
+          `Order acceptance for ${label} closes at ${cutoffs[meal]} IST (${until} min left).`,
+          { type: "order_closing", meal, cutoff: cutoffs[meal], minutes_left: until }
+        );
+        sent.push(kind);
+      }
+    }
+  }
+
+  // —— Opening reminders ——
+  // Breakfast: evening before (20:00–20:14 IST) for tomorrow
+  if (minutes >= 20 * 60 && minutes < 20 * 60 + 15) {
+    const tomorrowParts = getZonedParts(
+      new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      tz
+    );
+    const kind = "opening_breakfast";
+    if (!(await alreadySent(kind, tomorrowParts.dateStr, "breakfast"))) {
+      await notifyAllStudents(
+        "Breakfast ordering opens overnight",
+        `Tomorrow's breakfast orders are accepted until ${cutoffs.breakfast} IST. Check the menu and plan ahead.`,
+        {
+          type: "order_opening",
+          meal: "breakfast",
+          date: tomorrowParts.dateStr,
+          cutoff: cutoffs.breakfast,
+        }
+      );
+      sent.push(kind);
+    }
+  }
+
+  // Lunch opens when breakfast cutoff just passed (0–14 min after)
+  {
+    const bCut = timeToMinutes(cutoffs.breakfast);
+    if (minutes >= bCut && minutes < bCut + 15) {
+      const kind = "opening_lunch";
+      if (!(await alreadySent(kind, dateStr, "lunch"))) {
+        await notifyAllStudents(
+          "Lunch ordering is open",
+          `Lunch orders accepted until ${cutoffs.lunch} IST.`,
+          { type: "order_opening", meal: "lunch", cutoff: cutoffs.lunch }
+        );
+        sent.push(kind);
+      }
+    }
+  }
+
+  // Dinner opens when lunch cutoff just passed
+  {
+    const lCut = timeToMinutes(cutoffs.lunch);
+    if (minutes >= lCut && minutes < lCut + 15) {
+      const kind = "opening_dinner";
+      if (!(await alreadySent(kind, dateStr, "dinner"))) {
+        await notifyAllStudents(
+          "Dinner ordering is open",
+          `Dinner orders accepted until ${cutoffs.dinner} IST.`,
+          { type: "order_opening", meal: "dinner", cutoff: cutoffs.dinner }
+        );
+        sent.push(kind);
+      }
+    }
+  }
+
+  // —— Tomorrow menu reminder (if published, 20:00–20:14) ——
+  if (minutes >= 20 * 60 && minutes < 20 * 60 + 15) {
+    const tomorrow = getZonedParts(
+      new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      tz
+    ).dateStr;
+    const pub = await query(
+      `select 1 from menu_day_pubs where menu_date = $1::date`,
+      [tomorrow]
+    );
+    if (pub.rowCount) {
+      const kind = "menu_tomorrow";
+      if (!(await alreadySent(kind, tomorrow, ""))) {
+        const summary = await summarizeMenu(tomorrow);
+        await notifyAllStudents(
+          `Tomorrow's menu (${tomorrow})`,
+          summary.length > 160 ? `${summary.slice(0, 157)}…` : summary,
+          { type: "menu_reminder", date: tomorrow }
+        );
+        sent.push(kind);
+      }
+    }
+  }
+
+  return json({ ok: true, date: dateStr, minutes, lead, sent });
+}
+
+export async function GET(req: NextRequest) {
+  return run(req);
+}
+
+export async function POST(req: NextRequest) {
+  return run(req);
+}

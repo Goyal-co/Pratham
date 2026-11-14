@@ -1,0 +1,27 @@
+node_modules/
+.expo/
+.expo-shared/
+dist/
+build/
+.next/
+out/
+.turbo/
+*.log
+# Env / secrets (never commit)
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+!**/.env*.example
+.DS_Store
+*.tsbuildinfo
+coverage/
+.vercel/
+apps/student/android/
+apps/student/ios/
+apps/student/dist-web-check/
+apps/student/dist/
+supabase/.temp/

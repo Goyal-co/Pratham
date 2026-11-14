@@ -1,0 +1,44 @@
+{
+  "name": "pratham-tiffin",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "student": "npm run start --workspace=@pratham/student",
+    "admin": "npm run dev --workspace=@pratham/admin",
+    "admin:build": "npm run build --workspace=@pratham/admin",
+    "db:up": "node scripts/db.mjs up",
+    "db:down": "node scripts/db.mjs down",
+    "db:create": "node scripts/db.mjs create-db",
+    "db:migrate": "node scripts/db.mjs migrate",
+    "db:seed": "node scripts/db.mjs seed",
+    "db:seed:admin": "node scripts/db.mjs seed:admin",
+    "db:seed:demo": "node scripts/db.mjs seed:demo",
+    "test:e2e": "node scripts/e2e-smoke.mjs",
+    "test:features": "node scripts/e2e-features.mjs",
+    "test:clicks": "node scripts/e2e-clicks.mjs",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "bcryptjs": "^3.0.2",
+    "pg": "^8.14.1",
+    "playwright": "^1.65.1"
+  },
+  "overrides": {
+    "expo": "52.0.46",
+    "metro": "0.81.5",
+    "metro-cache": "0.81.5",
+    "metro-config": "0.81.5",
+    "metro-file-map": "0.81.5",
+    "metro-resolver": "0.81.5",
+    "metro-runtime": "0.81.5",
+    "metro-source-map": "0.81.5",
+    "metro-transform-plugins": "0.81.5",
+    "metro-transform-worker": "0.81.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pratham-postgres
+    restart: unless-stopped
+    ports:
+      # Host 5434 avoids clash with local Windows PostgreSQL on 5432
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pratham
+    volumes:
+      - pratham_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pratham"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pratham_pg_data:
