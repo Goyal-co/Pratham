@@ -14,6 +14,12 @@ import {
   type MealType,
 } from "@pratham/shared";
 
+function addDaysYmd(dateStr: string, days: number) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return error("Unauthorized", 401);
@@ -37,12 +43,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const mealType = body.meal_type as MealType;
   const menuItemId = body.menu_item_id as string | null | undefined;
+  const placeNow = body.place_order !== false; // default: confirm = order
+  const quantity = Math.max(1, Math.min(10, Number(body.quantity || 1)));
+  const settings = await getSettings();
+  const { dateStr } = getZonedParts(new Date(), settings.timezone);
+  const tomorrow = addDaysYmd(dateStr, 1);
+  const orderDate = (body.order_date as string) || tomorrow;
 
   if (!mealType || !["breakfast", "lunch", "dinner"].includes(mealType)) {
     return error("meal_type required");
   }
   if (!menuItemId) {
-    return error("Select a combo / dish for this meal plan");
+    return error("Select a combo for this meal");
   }
 
   const item = await query(
@@ -53,15 +65,6 @@ export async function POST(req: NextRequest) {
   if (item.rows[0].meal_type !== mealType) {
     return error("Selected dish does not match this meal");
   }
-
-  const existing = await query(
-    `select * from fixed_plans
-     where student_id = $1 and meal_type = $2 and is_active`,
-    [user.id, mealType]
-  );
-  const prevItemId = existing.rows[0]?.menu_item_id as string | null | undefined;
-  const changing =
-    !!existing.rows[0] && String(prevItemId || "") !== String(menuItemId);
 
   await query(
     `update fixed_plans set is_active = false, ended_at = now()
@@ -74,78 +77,80 @@ export async function POST(req: NextRequest) {
     [user.id, mealType, menuItemId]
   );
 
-  // Preference only — enabling a plan does NOT charge.
-  // If an open plan order already exists for today/tomorrow, swap it and refund/recharge.
-  let swapped = 0;
-  if (changing) {
-    const settings = await getSettings();
-    const { dateStr } = getZonedParts(new Date(), settings.timezone);
+  let ordered = false;
+  let orderId: string | null = null;
+
+  if (placeNow) {
     const cutoffs = {
       breakfast: settings.breakfast_cutoff,
       lunch: settings.lunch_cutoff,
       dinner: settings.dinner_cutoff,
     };
-    const dates = [dateStr];
-    const [y, m, d] = dateStr.split("-").map(Number);
-    const tm = new Date(Date.UTC(y, m - 1, d + 1));
-    dates.push(
-      `${tm.getUTCFullYear()}-${String(tm.getUTCMonth() + 1).padStart(2, "0")}-${String(tm.getUTCDate()).padStart(2, "0")}`
-    );
+    if (orderDate < dateStr) {
+      return error("Cannot order for a past date");
+    }
+    if (
+      orderDate === dateStr &&
+      !isMealOpen(mealType, cutoffs, new Date(), settings.timezone)
+    ) {
+      return error(`${mealType} ordering is closed for today`);
+    }
 
-    for (const orderDate of dates) {
-      const open = await query(
-        `select id from orders
-         where student_id = $1 and meal_type = $2 and order_date = $3::date
-           and source = 'fixed_plan' and status in ('placed','preparing')`,
-        [user.id, mealType, orderDate]
-      );
-      if (!open.rowCount) continue;
+    // Replace any open plan order for that date
+    await cancelOpenOrdersForMealDate({
+      studentId: user.id,
+      mealType,
+      orderDate,
+      source: "any",
+    });
 
-      if (
-        orderDate === dateStr &&
-        !isMealOpen(mealType, cutoffs, new Date(), settings.timezone)
-      ) {
-        continue;
-      }
-
-      await cancelOpenOrdersForMealDate({
+    try {
+      const order = await placeOrder({
         studentId: user.id,
         mealType,
+        menuItemId,
+        quantity,
         orderDate,
         source: "fixed_plan",
       });
-
-      try {
-        await placeOrder({
-          studentId: user.id,
-          mealType,
-          menuItemId,
-          quantity: 1,
-          orderDate,
-          source: "fixed_plan",
-        });
-        swapped += 1;
-      } catch {
-        /* credit/cutoff — preference still saved for future days */
-      }
+      ordered = true;
+      orderId = order.id;
+    } catch (e) {
+      await notifyUser(
+        user.id,
+        "Plan saved — order failed",
+        e instanceof Error ? e.message : "Could not place order",
+        { type: "plan_order_failed", meal_type: mealType }
+      );
+      return error(
+        e instanceof Error
+          ? `Plan saved but order failed: ${e.message}`
+          : "Plan saved but order failed"
+      );
     }
   }
 
   await notifyUser(
     user.id,
-    changing ? "Plan combo updated" : "Fixed plan activated",
-    changing
-      ? `${mealType} preference set to ${item.rows[0].name}${
-          swapped ? ` · ${swapped} open order(s) updated with credit adjust` : ""
-        }`
-      : `Everyday ${mealType}: ${item.rows[0].name}. Charged only when the meal order is created — change combo anytime before cutoff.`,
-    { type: "plan_activated", plan_id: rows[0].id, menu_item_id: menuItemId }
+    ordered ? "Combo confirmed · ordered" : "Plan combo saved",
+    ordered
+      ? `${mealType}: ${item.rows[0].name} ×${quantity} ordered for ${orderDate}`
+      : `Everyday ${mealType}: ${item.rows[0].name}`,
+    {
+      type: "plan_activated",
+      plan_id: rows[0].id,
+      menu_item_id: menuItemId,
+      order_id: orderId,
+      quantity,
+    }
   );
 
   return json({
     plan: rows[0],
-    charged: false,
-    swapped_orders: swapped,
+    ordered,
+    order_id: orderId,
+    order_date: orderDate,
+    quantity,
     item: {
       id: item.rows[0].id,
       name: item.rows[0].name,
@@ -166,7 +171,6 @@ export async function DELETE(req: NextRequest) {
     [user.id, mealType]
   );
 
-  // Stop plan: refund any open future/today plan orders that haven't shipped.
   const settings = await getSettings();
   const { dateStr } = getZonedParts(new Date(), settings.timezone);
   let refunded = 0;
@@ -176,9 +180,7 @@ export async function DELETE(req: NextRequest) {
     orderDate: dateStr,
     source: "fixed_plan",
   });
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const tm = new Date(Date.UTC(y, m - 1, d + 1));
-  const tomorrow = `${tm.getUTCFullYear()}-${String(tm.getUTCMonth() + 1).padStart(2, "0")}-${String(tm.getUTCDate()).padStart(2, "0")}`;
+  const tomorrow = addDaysYmd(dateStr, 1);
   refunded += await cancelOpenOrdersForMealDate({
     studentId: user.id,
     mealType: mealType as MealType,

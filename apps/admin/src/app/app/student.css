@@ -646,6 +646,10 @@
   border-radius: 14px;
   background: #fff;
   cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
 }
 
 .student-combo.active {
@@ -654,11 +658,20 @@
   box-shadow: 0 0 0 1px rgba(252, 128, 25, 0.25);
 }
 
-.student-combo input {
-  margin-top: 3px;
-  accent-color: var(--s-accent);
+.student-combo-tick {
   width: 18px;
   height: 18px;
+  margin-top: 2px;
+  border-radius: 999px;
+  border: 2px solid #c5cad3;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.student-combo-tick.on {
+  border-color: var(--s-accent);
+  background: var(--s-accent);
+  box-shadow: inset 0 0 0 3px #fff;
 }
 
 .student-combo-copy {

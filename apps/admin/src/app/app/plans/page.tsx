@@ -27,14 +27,17 @@ function addDaysYmd(dateStr: string, days: number) {
 
 export default function StudentPlansPage() {
   const today = getZonedParts().dateStr;
+  const tomorrow = addDaysYmd(today, 1);
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [menuByMeal, setMenuByMeal] = useState<Record<MealType, MenuItem[]>>({
     breakfast: [],
     lunch: [],
     dinner: [],
   });
+  /** Explicit pick per meal — "" means cleared / none. Missing key = none selected. */
   const [selected, setSelected] = useState<Partial<Record<MealType, string>>>({});
-  const [cancelDate, setCancelDate] = useState(today);
+  const [qty, setQty] = useState<Partial<Record<MealType, number>>>({});
+  const [cancelDate, setCancelDate] = useState(tomorrow);
   const [skipMeals, setSkipMeals] = useState<Record<MealType, boolean>>({
     breakfast: false,
     lunch: false,
@@ -47,12 +50,11 @@ export default function StudentPlansPage() {
   const [skipBusy, setSkipBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const tomorrow = addDaysYmd(getZonedParts().dateStr, 1);
-    const [planData, settings, todayMenu, tomorrowMenu] = await Promise.all([
+    const day = addDaysYmd(getZonedParts().dateStr, 1);
+    const [planData, settings, tomorrowMenu] = await Promise.all([
       api<{ plans: PlanRow[] }>("/api/plans"),
       api<{ settings: Record<string, string> }>("/api/settings"),
-      api<{ items: MenuItem[] }>(`/api/menu?date=${getZonedParts().dateStr}`),
-      api<{ items: MenuItem[] }>(`/api/menu?date=${tomorrow}`),
+      api<{ items: MenuItem[] }>(`/api/menu?date=${day}`),
     ]);
 
     const merged: Record<MealType, MenuItem[]> = {
@@ -60,23 +62,14 @@ export default function StudentPlansPage() {
       lunch: [],
       dinner: [],
     };
-    const seen = new Set<string>();
-    for (const item of [...(tomorrowMenu.items ?? []), ...(todayMenu.items ?? [])]) {
-      if (seen.has(item.id)) continue;
-      seen.add(item.id);
+    for (const item of tomorrowMenu.items ?? []) {
       merged[item.meal_type as MealType]?.push(item);
     }
     setMenuByMeal(merged);
-
-    const nextPlans = planData.plans ?? [];
-    setPlans(nextPlans);
-    setSelected((prev) => {
-      const next = { ...prev };
-      for (const p of nextPlans) {
-        if (p.menu_item_id) next[p.meal_type] = p.menu_item_id;
-      }
-      return next;
-    });
+    setPlans(planData.plans ?? []);
+    // Do not auto-select combos — plan = three meal slots, user picks one combo each.
+    setSelected({});
+    setQty({});
 
     if (settings.settings) {
       setCutoffs({
@@ -98,32 +91,45 @@ export default function StudentPlansPage() {
     return m;
   }, [plans]);
 
-  async function savePreference(meal: MealType) {
+  function toggleCombo(meal: MealType, itemId: string) {
+    setSelected((s) => {
+      if (s[meal] === itemId) {
+        return { ...s, [meal]: "" };
+      }
+      return { ...s, [meal]: itemId };
+    });
+  }
+
+  async function confirmOrder(meal: MealType) {
     const menuItemId = selected[meal];
     if (!menuItemId) {
-      setMsg(`Pick a ${MEAL_LABELS[meal]} combo first.`);
+      setMsg(`Pick one ${MEAL_LABELS[meal]} combo, then confirm.`);
       return;
     }
+    const plates = Math.max(1, Math.min(10, qty[meal] || 1));
     setBusyMeal(meal);
     try {
       const data = await api<{
-        charged: boolean;
-        swapped_orders?: number;
-        item?: { name: string };
+        ordered: boolean;
+        order_date: string;
+        quantity?: number;
+        item?: { name: string; price: number };
       }>("/api/plans", {
         method: "POST",
-        json: { meal_type: meal, menu_item_id: menuItemId },
+        json: {
+          meal_type: meal,
+          menu_item_id: menuItemId,
+          quantity: plates,
+          place_order: true,
+          order_date: tomorrow,
+        },
       });
-      const name = data.item?.name || "combo";
+      const n = data.quantity || plates;
       setMsg(
-        planMap[meal]
-          ? `Updated ${MEAL_LABELS[meal]} to ${name}. ${
-              data.swapped_orders
-                ? `Open order(s) adjusted — credits refunded/reapplied.`
-                : "No charge until the meal order is created."
-            }`
-          : `Everyday ${MEAL_LABELS[meal]} saved (${name}). Not charged yet — only when the daily order is created.`
+        `Confirmed ${MEAL_LABELS[meal]}: ${data.item?.name || "combo"} ×${n} for ${data.order_date} · charged to wallet`
       );
+      setSelected((s) => ({ ...s, [meal]: "" }));
+      setQty((q) => ({ ...q, [meal]: 1 }));
       await load();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Failed");
@@ -142,15 +148,11 @@ export default function StudentPlansPage() {
       setMsg(
         `Stopped ${MEAL_LABELS[meal]} plan${
           data.refunded_orders
-            ? ` · ${data.refunded_orders} open order(s) refunded to credit`
+            ? ` · ${data.refunded_orders} open order(s) refunded`
             : ""
         }`
       );
-      setSelected((s) => {
-        const next = { ...s };
-        delete next[meal];
-        return next;
-      });
+      setSelected((s) => ({ ...s, [meal]: "" }));
       await load();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Failed");
@@ -196,7 +198,7 @@ export default function StudentPlansPage() {
     return (
       <div>
         <p className="student-kicker">Ahariva</p>
-        <h1 className="student-title">Fixed plans</h1>
+        <h1 className="student-title">Plans</h1>
         <div className="student-skeleton" style={{ width: "60%" }} />
       </div>
     );
@@ -205,11 +207,12 @@ export default function StudentPlansPage() {
   return (
     <div>
       <p className="student-kicker">Ahariva</p>
-      <h1 className="student-title">Fixed plans</h1>
+      <h1 className="student-title">Plans</h1>
       <p className="student-muted">
-        Pick a combo for each meal. Saving preference does not charge credits —
-        you are charged only when that day’s order is created. Change combo
-        anytime before cutoff; open orders are refunded and rebuilt.
+        Plan covers breakfast, lunch & dinner as three meal times. For tomorrow (
+        {tomorrow}), pick <strong>one combo</strong> per meal, set plates
+        (extras allowed), then confirm — that places the order. Tap again to
+        unselect.
       </p>
       <p className="student-muted">
         Cutoffs (IST): B {cutoffs.breakfast} · L {cutoffs.lunch} · D{" "}
@@ -220,19 +223,23 @@ export default function StudentPlansPage() {
       {(["breakfast", "lunch", "dinner"] as MealType[]).map((meal) => {
         const plan = planMap[meal];
         const options = menuByMeal[meal];
-        const choice = selected[meal] || plan?.menu_item_id || "";
+        const choice = selected[meal] || "";
+        const plates = qty[meal] || 1;
+        const unit = options.find((i) => i.id === choice);
+        const total =
+          unit != null ? Number(unit.price) * plates : null;
         return (
           <section className="student-panel" key={meal}>
             <div className="student-panel-head">
               <h2>{MEAL_LABELS[meal]}</h2>
               <span className={`student-badge ${plan ? "ok" : "muted"}`}>
-                {plan ? "Plan on" : "Off"}
+                {plan ? "Plan on" : "No plan"}
               </span>
             </div>
             <div className="student-panel-body">
               {plan?.menu_item_name && (
                 <p className="student-panel-note">
-                  Current combo: <strong>{plan.menu_item_name}</strong>
+                  Last confirmed: <strong>{plan.menu_item_name}</strong>
                   {plan.menu_item_price != null
                     ? ` · ${formatInr(Number(plan.menu_item_price))}`
                     : ""}
@@ -240,25 +247,23 @@ export default function StudentPlansPage() {
               )}
               {!options.length && (
                 <p className="student-empty">
-                  No dishes published for this meal yet. Ask kitchen to add a
-                  combo, then pick it here.
+                  No combos for tomorrow yet. Kitchen adds tomorrow’s menu the
+                  day before.
                 </p>
               )}
               <div className="student-combo-list">
                 {options.map((item) => {
                   const active = choice === item.id;
                   return (
-                    <label
+                    <button
                       key={item.id}
+                      type="button"
                       className={`student-combo${active ? " active" : ""}`}
+                      onClick={() => toggleCombo(meal, item.id)}
                     >
-                      <input
-                        type="radio"
-                        name={`combo-${meal}`}
-                        checked={active}
-                        onChange={() =>
-                          setSelected((s) => ({ ...s, [meal]: item.id }))
-                        }
+                      <span
+                        className={`student-combo-tick${active ? " on" : ""}`}
+                        aria-hidden
                       />
                       <span className="student-combo-copy">
                         <strong>{item.name}</strong>
@@ -271,22 +276,85 @@ export default function StudentPlansPage() {
                       <span className="student-combo-price">
                         {formatInr(Number(item.price))}
                       </span>
-                    </label>
+                    </button>
                   );
                 })}
               </div>
+              {choice ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      marginTop: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <div className="student-panel-note" style={{ margin: 0 }}>
+                        Plates · extras ok
+                      </div>
+                      {total != null && (
+                        <strong style={{ fontSize: "0.95rem" }}>
+                          {formatInr(total)}
+                        </strong>
+                      )}
+                    </div>
+                    <div className="student-qty">
+                      <button
+                        type="button"
+                        aria-label="Fewer plates"
+                        disabled={plates <= 1}
+                        onClick={() =>
+                          setQty((q) => ({
+                            ...q,
+                            [meal]: Math.max(1, plates - 1),
+                          }))
+                        }
+                      >
+                        −
+                      </button>
+                      <span>{plates}</span>
+                      <button
+                        type="button"
+                        aria-label="More plates"
+                        disabled={plates >= 10}
+                        onClick={() =>
+                          setQty((q) => ({
+                            ...q,
+                            [meal]: Math.min(10, plates + 1),
+                          }))
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    className="student-btn secondary"
+                    style={{ marginTop: 8 }}
+                    type="button"
+                    onClick={() => {
+                      setSelected((s) => ({ ...s, [meal]: "" }));
+                      setQty((q) => ({ ...q, [meal]: 1 }));
+                    }}
+                  >
+                    Clear selection
+                  </button>
+                </>
+              ) : null}
               <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                 <button
                   className="student-btn"
                   type="button"
                   disabled={!!busyMeal || !choice}
-                  onClick={() => savePreference(meal)}
+                  onClick={() => confirmOrder(meal)}
                 >
                   {busyMeal === meal
-                    ? "Saving…"
-                    : plan
-                      ? "Update combo"
-                      : "Save combo & enable plan"}
+                    ? "Ordering…"
+                    : `Confirm · ${plates} plate${plates > 1 ? "s" : ""} for ${tomorrow}`}
                 </button>
                 {plan && (
                   <button
@@ -310,8 +378,7 @@ export default function StudentPlansPage() {
         </div>
         <div className="student-panel-body">
           <p className="student-panel-note">
-            Choose meals to skip. If an order was already created, it is
-            cancelled and credits are restored.
+            Opt in per meal (nothing selected by default).
           </p>
           <label className="student-field">
             Date

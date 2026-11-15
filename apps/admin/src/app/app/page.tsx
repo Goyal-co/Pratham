@@ -52,7 +52,9 @@ export default function StudentHomePage() {
     { meal_type: MealType; cancel_date: string }[]
   >([]);
   const [calendarMenu, setCalendarMenu] = useState<MenuItem[]>([]);
+  const [pick, setPick] = useState<Record<string, string>>({});
   const [qty, setQty] = useState<Record<string, number>>({});
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
   const [msg, setMsg] = useState<string | null>(null);
@@ -161,27 +163,87 @@ export default function StudentHomePage() {
     setSkipMeals(next);
   }, [selectedDate, cancellations]);
 
-  async function place(item: MenuItem, orderDate: string, forTomorrow: boolean) {
-    if (!forTomorrow && !isMealOpen(item.meal_type, cutoffs, now)) {
-      setMsg(`${MEAL_LABELS[item.meal_type]} ordering is closed for today.`);
+  function pickKey(orderDate: string, meal: MealType) {
+    return `${orderDate}:${meal}`;
+  }
+
+  function togglePick(orderDate: string, meal: MealType, itemId: string) {
+    const key = pickKey(orderDate, meal);
+    const clearing = pick[key] === itemId;
+    setPick((p) => {
+      if (clearing) {
+        const next = { ...p };
+        delete next[key];
+        return next;
+      }
+      return { ...p, [key]: itemId };
+    });
+    setQty((q) => {
+      if (clearing) {
+        const next = { ...q };
+        delete next[key];
+        return next;
+      }
+      return { ...q, [key]: q[key] || 1 };
+    });
+  }
+
+  async function confirmMeal(
+    meal: MealType,
+    orderDate: string,
+    forTomorrow: boolean,
+    mealItems: MenuItem[]
+  ) {
+    const key = pickKey(orderDate, meal);
+    const itemId = pick[key];
+    if (!itemId) {
+      setMsg(`Pick one ${MEAL_LABELS[meal]} combo, then confirm.`);
       return;
     }
+    const item = mealItems.find((i) => i.id === itemId);
+    if (!item) return;
+    if (!forTomorrow && !isMealOpen(meal, cutoffs, now)) {
+      setMsg(`${MEAL_LABELS[meal]} ordering is closed for today.`);
+      return;
+    }
+    const plates = Math.max(1, Math.min(10, qty[key] || 1));
+    setBusyKey(key);
     try {
-      const data = await api<{ order: { payable_amount: number } }>("/api/orders", {
-        method: "POST",
-        json: {
-          meal_type: item.meal_type,
-          menu_item_id: item.id,
-          quantity: qty[item.id] ?? 1,
-          order_date: orderDate,
-        },
-      });
-      setMsg(
-        `Ordered ${qty[item.id] ?? 1}× ${item.name} · COD ${formatInr(Number(data.order.payable_amount))}`
+      const data = await api<{ order: { payable_amount: number; gross_amount?: number; quantity?: number } }>(
+        "/api/orders",
+        {
+          method: "POST",
+          json: {
+            meal_type: meal,
+            menu_item_id: item.id,
+            quantity: plates,
+            order_date: orderDate,
+          },
+        }
       );
+      const charged = Number(
+        data.order.gross_amount ??
+          data.order.payable_amount ??
+          Number(item.price) * plates
+      );
+      setMsg(
+        `Ordered ${item.name} ×${plates} for ${orderDate} · ${formatInr(charged)} charged to wallet`
+      );
+      setPick((p) => {
+        const next = { ...p };
+        delete next[key];
+        return next;
+      });
+      setQty((q) => {
+        const next = { ...q };
+        delete next[key];
+        return next;
+      });
       await load();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Order failed");
+    } finally {
+      setBusyKey(null);
     }
   }
 
@@ -209,7 +271,7 @@ export default function StudentHomePage() {
     }
   }
 
-  function MealList({
+  function MealPicker({
     mealItems,
     orderDate,
     forTomorrow,
@@ -227,16 +289,11 @@ export default function StudentHomePage() {
     );
 
     if (!meals.length) {
-      const anyOpenToday = (["breakfast", "lunch", "dinner"] as MealType[]).some(
-        (m) => isMealOpen(m, cutoffs, now)
-      );
       return (
         <p className="student-empty">
           {forTomorrow
-            ? "No dishes published for tomorrow yet."
-            : anyOpenToday && !mealItems.length
-              ? "No dishes for today’s open meals."
-              : "All meals for today are closed."}
+            ? "No combos published for tomorrow yet."
+            : "No open meals with a menu for today."}
         </p>
       );
     }
@@ -247,8 +304,14 @@ export default function StudentHomePage() {
           const open = forTomorrow || isMealOpen(meal, cutoffs, now);
           const mins = minutesUntilCutoff(meal, cutoffs, now);
           const list = mealItems.filter((i) => i.meal_type === meal);
+          const key = pickKey(orderDate, meal);
+          const choice = pick[key] || "";
+          const plates = qty[key] || 1;
+          const unit = list.find((i) => i.id === choice);
+          const total =
+            unit != null ? Number(unit.price) * plates : null;
           return (
-            <div key={`${orderDate}-${meal}`} className="student-meal-block">
+            <div key={key} className="student-meal-block">
               <div className="student-meal-label">
                 <strong>{MEAL_LABELS[meal]}</strong>
                 <span className={`student-badge ${open || forTomorrow ? "ok" : "muted"}`}>
@@ -259,68 +322,121 @@ export default function StudentHomePage() {
                       : "Closed"}
                 </span>
               </div>
-              {plans.some((p) => p.meal_type === meal) && (
-                <p className="student-panel-note">
-                  Covered by your plan
-                  {plans.find((p) => p.meal_type === meal)?.menu_item_name
-                    ? ` (${plans.find((p) => p.meal_type === meal)?.menu_item_name})`
-                    : ""}
-                  . Change combo under Plans. Buttons below are extra COD
-                  orders only.
-                </p>
-              )}
-              {list.map((item) => (
-                <div key={item.id} className="student-dish">
-                  <div>
-                    <div className="student-dish-name">{item.name}</div>
-                    {item.description ? (
-                      <div className="student-dish-desc">{item.description}</div>
-                    ) : null}
-                    <div className="student-dish-price">
-                      {formatInr(Number(item.price))}
+              <p className="student-panel-note">
+                Pick one combo (tap again to unselect). Add extra plates if
+                needed, then confirm.
+              </p>
+              <div className="student-combo-list">
+                {list.map((item) => {
+                  const active = choice === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`student-combo${active ? " active" : ""}`}
+                      onClick={() => togglePick(orderDate, meal, item.id)}
+                    >
+                      <span
+                        className={`student-combo-tick${active ? " on" : ""}`}
+                        aria-hidden
+                      />
+                      <span className="student-combo-copy">
+                        <strong>{item.name}</strong>
+                        {item.description ? (
+                          <div className="student-dish-desc">{item.description}</div>
+                        ) : null}
+                      </span>
+                      <span className="student-combo-price">
+                        {formatInr(Number(item.price))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {choice ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      marginTop: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <div className="student-panel-note" style={{ margin: 0 }}>
+                        Plates · extras ok
+                      </div>
+                      {total != null && (
+                        <strong style={{ fontSize: "0.95rem" }}>
+                          {formatInr(total)}
+                        </strong>
+                      )}
                     </div>
-                  </div>
-                  <div className="student-dish-actions">
                     <div className="student-qty">
                       <button
                         type="button"
-                        aria-label="Decrease quantity"
+                        aria-label="Fewer plates"
+                        disabled={plates <= 1}
                         onClick={() =>
                           setQty((q) => ({
                             ...q,
-                            [item.id]: Math.max(1, (q[item.id] ?? 1) - 1),
+                            [key]: Math.max(1, plates - 1),
                           }))
                         }
                       >
                         −
                       </button>
-                      <span>{qty[item.id] ?? 1}</span>
+                      <span>{plates}</span>
                       <button
                         type="button"
-                        aria-label="Increase quantity"
+                        aria-label="More plates"
+                        disabled={plates >= 10}
                         onClick={() =>
                           setQty((q) => ({
                             ...q,
-                            [item.id]: Math.min(10, (q[item.id] ?? 1) + 1),
+                            [key]: Math.min(10, plates + 1),
                           }))
                         }
                       >
                         +
                       </button>
                     </div>
-                    <button
-                      className="student-btn compact"
-                      type="button"
-                      disabled={blocked || (!forTomorrow && !open)}
-                      onClick={() => place(item, orderDate, forTomorrow)}
-                    >
-                      {plans.some((p) => p.meal_type === meal)
-                        ? "Extra · COD"
-                        : "Add · COD"}
-                    </button>
                   </div>
-                </div>
-              ))}
+                  <button
+                    type="button"
+                    className="student-btn secondary"
+                    style={{ marginTop: 8 }}
+                    onClick={() => {
+                      setPick((p) => {
+                        const next = { ...p };
+                        delete next[key];
+                        return next;
+                      });
+                      setQty((q) => {
+                        const next = { ...q };
+                        delete next[key];
+                        return next;
+                      });
+                    }}
+                  >
+                    Clear selection
+                  </button>
+                </>
+              ) : null}
+              <button
+                className="student-btn"
+                style={{ marginTop: 10 }}
+                type="button"
+                disabled={blocked || !choice || busyKey === key || (!forTomorrow && !open)}
+                onClick={() => confirmMeal(meal, orderDate, forTomorrow, list)}
+              >
+                {busyKey === key
+                  ? "Ordering…"
+                  : `Confirm · ${plates} plate${plates > 1 ? "s" : ""}`}
+              </button>
             </div>
           );
         })}
@@ -341,7 +457,6 @@ export default function StudentHomePage() {
           <div className="student-panel-body">
             <div className="student-skeleton" style={{ width: "40%" }} />
             <div className="student-skeleton" style={{ width: "90%", height: 64 }} />
-            <div className="student-skeleton" style={{ width: "80%", height: 64 }} />
           </div>
         </div>
       </div>
@@ -370,30 +485,21 @@ export default function StudentHomePage() {
       {msg && <div className="student-banner info">{msg}</div>}
       {blocked && (
         <div className="student-banner warn">
-          Credit limit reached. Clear outstanding after COD collection.
+          Credit limit reached. Pay cash to free available credit.
         </div>
       )}
 
       <section className="student-panel">
         <div className="student-panel-head">
-          <h2>Today’s menu</h2>
-          <span className="student-badge">{dateStr}</span>
-        </div>
-        <div className="student-panel-body">
-          <MealList mealItems={items} orderDate={dateStr} forTomorrow={false} />
-        </div>
-      </section>
-
-      <section className="student-panel">
-        <div className="student-panel-head">
-          <h2>Tomorrow’s menu</h2>
+          <h2>Tomorrow</h2>
           <span className="student-badge">{tomorrowStr}</span>
         </div>
         <div className="student-panel-body">
           <p className="student-panel-note">
-            Order ahead now — meal cutoffs apply on that day.
+            Menu is published the day before. Pick one combo per meal, add
+            extra plates if needed, then confirm to order.
           </p>
-          <MealList
+          <MealPicker
             mealItems={tomorrowItems}
             orderDate={tomorrowStr}
             forTomorrow={true}
@@ -401,9 +507,20 @@ export default function StudentHomePage() {
         </div>
       </section>
 
+      <section className="student-panel">
+        <div className="student-panel-head">
+          <h2>Today</h2>
+          <span className="student-badge">{dateStr}</span>
+        </div>
+        <div className="student-panel-body">
+          <MealPicker mealItems={items} orderDate={dateStr} forTomorrow={false} />
+        </div>
+      </section>
+
       <h2 className="student-section-title">Plan calendar</h2>
       <p className="student-muted">
-        Browse meals by date, then skip the plan meals you won’t need.
+        Only dates with a published day menu show dishes. Skip plan meals you
+        don’t need.
       </p>
 
       <div className="student-cal-strip">
@@ -434,7 +551,9 @@ export default function StudentHomePage() {
           </div>
           <div className="student-panel-body">
             {!calendarMenu.length && (
-              <p className="student-empty">No dishes for this date yet.</p>
+              <p className="student-empty">
+                No menu published for this date (only day-specific dishes show).
+              </p>
             )}
             {(["breakfast", "lunch", "dinner"] as MealType[]).map((meal) => {
               const list = calendarMenu.filter((i) => i.meal_type === meal);
@@ -462,7 +581,7 @@ export default function StudentHomePage() {
               <div style={{ marginTop: 8 }}>
                 <strong>Skip plan meals</strong>
                 <p className="student-panel-note">
-                  Choose meals to skip on this date (before cutoff if today).
+                  Nothing is skipped by default — tick meals to skip.
                 </p>
                 {(["breakfast", "lunch", "dinner"] as MealType[])
                   .filter((m) => planMeals.has(m))
@@ -493,7 +612,7 @@ export default function StudentHomePage() {
               </div>
             ) : (
               <p className="student-empty" style={{ marginTop: 12 }}>
-                No fixed plans yet — set them under Plans.
+                No fixed plans yet — confirm a combo under Plans.
               </p>
             )}
           </div>

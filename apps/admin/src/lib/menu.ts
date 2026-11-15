@@ -37,21 +37,20 @@ export async function getDaySpecificMenu(menuDate: string) {
 }
 
 /**
- * Menu for a calendar day:
- * - If any day-specific items exist for that date → return ONLY those
- *   (so adding one dish does not pull in the whole catalog)
- * - Otherwise fall back to catalog (menu_date is null)
+ * Menu for a calendar day — only dishes added for that date.
+ * Catalog defaults are admin-only fallbacks for kitchen auto-pick, not shown to students.
  */
 export async function getMenuForDate(menuDate: string) {
-  const dated = await getDaySpecificMenu(menuDate);
-  if (dated.length) return dated;
+  return getDaySpecificMenu(menuDate);
+}
 
-  const { rows: catalog } = await query(
+export async function getCatalogMenu() {
+  const { rows } = await query(
     `select * from menu_items
      where is_active and menu_date is null
      order by meal_type, name`
   );
-  return catalog.map(normalizeItem);
+  return rows.map(normalizeItem);
 }
 
 export async function summarizeMenu(menuDate: string) {
