@@ -142,17 +142,20 @@ One deploy: admin desk + student PWA (`/app`) + `/api/*`.
    | `VAPID_SUBJECT` | e.g. `mailto:admin@gmail.com` |
 
 5. Deploy. Students open `/app` (Add to Home Screen). Admin opens `/login`.
-6. Cron is declared in `vercel.json` (plan generation + reminders every 5 min). Requires a Vercel Pro plan for crons, or call the endpoints externally.
+6. Cron is declared in `vercel.json` — **5 runs/day** so it fits **Vercel Hobby**:
+   - `generate-plans` at 05:45 / 10:45 / 16:45 IST (also sweeps closing reminders)
+   - `reminders` at 06:00 IST (lunch open) and 20:00 IST (tomorrow menu / breakfast)
+   For denser reminder timing, call `/api/cron/reminders` from an external cron or upgrade to Pro.
 
 ## Daily menu & reminders
 
 - **Admin → Menu:** add dishes for **tomorrow** (or today), then **Publish & notify students**.
 - Students see **today** (orderable) and **tomorrow** (preview) on `/app`.
-- **Automated pushes** (`/api/cron/reminders`, every 5 min on Vercel):
-  - Closing soon — N minutes before each cutoff (Settings → closing reminder lead, default 30, min 10)
-  - Opening — breakfast evening-before; lunch after breakfast cutoff; dinner after lunch cutoff
+- **Automated pushes** (Hobby-friendly sparse crons; `generate-plans` also runs a reminder sweep):
+  - Closing soon — around each pre-cutoff plan run (Settings → lead, default 30, min 10)
+  - Opening — lunch at ~06:00 IST; dinner if a sweep lands in the post-lunch window
   - Tomorrow’s menu — 20:00 IST (preferred over breakfast-opening when that day was published)
-- Fixed-plan generation remains on `/api/cron/generate-plans`.
+- Fixed-plan generation: `/api/cron/generate-plans` before each meal cutoff.
 
 ## Mobile
 

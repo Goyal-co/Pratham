@@ -10,6 +10,10 @@
       "schedule": "15 0 * * *"
     },
     {
+      "path": "/api/cron/reminders",
+      "schedule": "30 0 * * *"
+    },
+    {
       "path": "/api/cron/generate-plans",
       "schedule": "15 5 * * *"
     },
@@ -19,7 +23,7 @@
     },
     {
       "path": "/api/cron/reminders",
-      "schedule": "*/5 * * * *"
+      "schedule": "30 14 * * *"
     }
   ]
 }

@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { error, json } from "@/lib/api";
 import { authorizeCron } from "@/lib/cron-auth";
+import { runReminders } from "@/lib/cron-reminders";
 import { generateFixedPlanOrders } from "@/lib/services";
 import { writeAudit } from "@/lib/audit";
 
 /**
- * Secured cron endpoint for fixed-plan auto-orders.
- * Vercel Cron invokes GET; local scripts may POST.
+ * Fixed-plan auto-orders, then a reminder sweep (Hobby-friendly: one hit does both).
  * Auth: Authorization: Bearer $CRON_SECRET
  */
 async function run(req: NextRequest) {
@@ -24,7 +24,20 @@ async function run(req: NextRequest) {
     after: { created, date: date || null },
     note: "Fixed-plan generation via cron",
   });
-  return json({ ok: true, created });
+
+  // Piggyback reminders so Hobby's 5/day limit still covers closing windows
+  let reminders: Awaited<ReturnType<typeof runReminders>> | null = null;
+  try {
+    reminders = await runReminders();
+  } catch {
+    reminders = null;
+  }
+
+  return json({
+    ok: true,
+    created,
+    reminders: reminders?.sent ?? [],
+  });
 }
 
 export async function GET(req: NextRequest) {
