@@ -12,15 +12,12 @@ import {
 export default async function DashboardPage() {
   const today = getZonedParts().dateStr;
   const { rows: orders } = await query(
-    `select meal_type, quantity, payable_amount from orders
+    `select meal_type, quantity, payable_amount, status from orders
      where order_date = $1 and status <> 'cancelled'`,
     [today]
   );
   const { rows: studentRows } = await query(
     `select count(*)::int as c from users where role = 'student'`
-  );
-  const { rows: refRows } = await query(
-    `select count(*)::int as c from referrals where status = 'pending'`
   );
   const { rows: blockedRows } = await query(
     `select count(*)::int as c from student_accounts
@@ -46,24 +43,36 @@ export default async function DashboardPage() {
   const byMeal = { breakfast: 0, lunch: 0, dinner: 0 };
   let kitchenUnits = 0;
   let revenue = 0;
+  let packing = 0;
+  let delivery = 0;
   for (const o of orders) {
     byMeal[o.meal_type as keyof typeof byMeal] += Number(o.quantity);
     kitchenUnits += Number(o.quantity);
     revenue += Number(o.payable_amount);
+    if (o.status === "preparing") packing += 1;
+    if (o.status === "out_for_delivery") delivery += 1;
   }
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Today&apos;s kitchen</h1>
-      <p className="muted">{today} · Asia/Kolkata · COD only</p>
+      <h1 style={{ marginTop: 0 }}>Today</h1>
+      <p className="muted">{today} · Asia/Kolkata · COD</p>
 
       <div className="grid-stats">
         <Link href="/kitchen" className="card stat">
           <h3>Kitchen units</h3>
           <p>{kitchenUnits}</p>
         </Link>
+        <Link href="/kitchen" className="card stat">
+          <h3>Packing</h3>
+          <p>{packing}</p>
+        </Link>
+        <Link href="/kitchen" className="card stat">
+          <h3>Out for delivery</h3>
+          <p>{delivery}</p>
+        </Link>
         <Link href="/orders" className="card stat">
-          <h3>COD outstanding today</h3>
+          <h3>COD today</h3>
           <p>{formatInr(revenue)}</p>
         </Link>
         <Link href="/students" className="card stat">
@@ -76,24 +85,18 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid-stats">
-        <div className="card stat">
-          <h3>Pending referrals</h3>
-          <p>{refRows[0]?.c ?? 0}</p>
-        </div>
-        <div className="card stat" style={{ gridColumn: "span 3" }}>
-          <h3>Open cutoffs now</h3>
-          <p style={{ fontSize: "1rem", fontWeight: 700 }}>
-            {openMeals.length
-              ? openMeals
-                  .map(
-                    (m) =>
-                      `${m} (${formatCountdown(minutesUntilCutoff(m, cutoffs))})`
-                  )
-                  .join(" · ")
-              : "All meals closed for today"}
-          </p>
-        </div>
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Open now</h2>
+        <p style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 0 }}>
+          {openMeals.length
+            ? openMeals
+                .map(
+                  (m) =>
+                    `${m} (${formatCountdown(minutesUntilCutoff(m, cutoffs))})`
+                )
+                .join(" · ")
+            : "All meals closed for today"}
+        </p>
       </div>
 
       <div className="card">
@@ -103,24 +106,26 @@ export default async function DashboardPage() {
             Open kitchen
           </Link>
         </div>
-        <div className="table-wrap"><table className="table">
-          <thead>
-            <tr>
-              <th>Meal</th>
-              <th>Units</th>
-              <th>Cutoff</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(byMeal).map(([meal, qty]) => (
-              <tr key={meal}>
-                <td style={{ textTransform: "capitalize" }}>{meal}</td>
-                <td>{qty}</td>
-                <td>{cutoffs[meal as MealType]}</td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Meal</th>
+                <th>Units</th>
+                <th>Cutoff</th>
               </tr>
-            ))}
-          </tbody>
-        </table></div>
+            </thead>
+            <tbody>
+              {Object.entries(byMeal).map(([meal, qty]) => (
+                <tr key={meal}>
+                  <td style={{ textTransform: "capitalize" }}>{meal}</td>
+                  <td>{qty}</td>
+                  <td>{cutoffs[meal as MealType]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

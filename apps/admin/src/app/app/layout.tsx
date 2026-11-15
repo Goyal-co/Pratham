@@ -1,15 +1,29 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Outfit } from "next/font/google";
 import { StudentChrome } from "@/components/student/StudentChrome";
 import "./student.css";
 
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  weight: ["600", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Tiffin",
+  title: "Ahariva",
   description: "Breakfast, lunch & dinner · cash on delivery",
-  applicationName: "Tiffin",
+  applicationName: "Ahariva",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Tiffin",
+    title: "Ahariva",
     statusBarStyle: "default",
   },
   icons: {
@@ -31,5 +45,9 @@ export default function StudentLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <StudentChrome>{children}</StudentChrome>;
+  return (
+    <div className={`${outfit.variable} ${fraunces.variable} ${outfit.className}`}>
+      <StudentChrome>{children}</StudentChrome>
+    </div>
+  );
 }

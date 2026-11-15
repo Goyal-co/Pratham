@@ -5,9 +5,12 @@ let pool: Pool | null = null;
 function shouldUseSsl(connectionString: string) {
   if (process.env.DATABASE_SSL === "true") return true;
   if (process.env.DATABASE_SSL === "false") return false;
-  // Hosted Postgres on Vercel / Neon / Railway typically needs SSL
   if (process.env.VERCEL === "1") return true;
-  if (/neon\.tech|supabase\.co|railway\.app|render\.com|amazonaws\.com/i.test(connectionString)) {
+  if (
+    /neon\.tech|supabase\.co|railway\.app|render\.com|amazonaws\.com/i.test(
+      connectionString
+    )
+  ) {
     return true;
   }
   return false;
@@ -21,19 +24,25 @@ export function getPool() {
         "DATABASE_URL is not set. Add it to apps/admin/.env.local or Vercel env vars."
       );
     }
-    // Avoid pg treating sslmode=require as verify-full (fails on RDS CA chains)
     const cleaned = connectionString
       .replace(/([?&])sslmode=[^&]*/gi, "$1")
       .replace(/\?&/, "?")
       .replace(/[?&]$/, "");
+    const serverless = process.env.VERCEL === "1";
     pool = new Pool({
       connectionString: cleaned,
       ssl: shouldUseSsl(connectionString)
         ? { rejectUnauthorized: false }
         : undefined,
-      max: process.env.VERCEL === "1" ? 3 : 10,
-      idleTimeoutMillis: process.env.VERCEL === "1" ? 10_000 : 30_000,
-      connectionTimeoutMillis: 10_000,
+      max: serverless ? 4 : 10,
+      idleTimeoutMillis: serverless ? 5_000 : 30_000,
+      connectionTimeoutMillis: 8_000,
+      allowExitOnIdle: serverless,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
+    });
+    pool.on("error", (err) => {
+      console.error("pg pool error", err.message);
     });
   }
   return pool;

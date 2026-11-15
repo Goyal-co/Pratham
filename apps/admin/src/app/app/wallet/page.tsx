@@ -37,8 +37,9 @@ export default function StudentWalletPage() {
   if (loading || !account) {
     return (
       <div>
+        <p className="student-kicker">Ahariva</p>
         <h1 className="student-title">Wallet</h1>
-        <p className="student-muted">Loading wallet…</p>
+        <div className="student-skeleton" style={{ height: 96 }} />
       </div>
     );
   }
@@ -48,25 +49,51 @@ export default function StudentWalletPage() {
 
   return (
     <div>
+      <p className="student-kicker">Ahariva</p>
       <h1 className="student-title">Wallet</h1>
       <p className="student-muted">COD only · no online payments</p>
-      <div className="student-card">
-        <div>Credit left: <strong>{formatInr(remaining)}</strong></div>
-        <div>Outstanding: <strong>{formatInr(Number(account.outstanding_balance))}</strong></div>
-        <div>Wallet credit: <strong>{formatInr(Number(account.wallet_credit))}</strong></div>
-        <div className="student-muted" style={{ marginTop: 8, marginBottom: 0 }}>
-          Limit {formatInr(Number(account.credit_limit))}
+
+      <div className="student-panel">
+        <div className="student-panel-body">
+          <div className="student-row" style={{ justifyContent: "space-between" }}>
+            <span className="student-muted" style={{ margin: 0 }}>
+              Credit left
+            </span>
+            <strong style={{ fontSize: "1.15rem" }}>{formatInr(remaining)}</strong>
+          </div>
+          <div
+            className="student-row"
+            style={{ justifyContent: "space-between", marginTop: 10 }}
+          >
+            <span className="student-muted" style={{ margin: 0 }}>
+              Outstanding
+            </span>
+            <strong>{formatInr(Number(account.outstanding_balance))}</strong>
+          </div>
+          <div
+            className="student-row"
+            style={{ justifyContent: "space-between", marginTop: 10 }}
+          >
+            <span className="student-muted" style={{ margin: 0 }}>
+              Wallet credit
+            </span>
+            <strong>{formatInr(Number(account.wallet_credit))}</strong>
+          </div>
+          <p className="student-panel-note" style={{ marginTop: 12, marginBottom: 0 }}>
+            Limit {formatInr(Number(account.credit_limit))}
+          </p>
         </div>
       </div>
-      <h2 style={{ fontSize: 16 }}>Ledger</h2>
-      {!ledger.length && <p className="student-muted">No entries yet.</p>}
+
+      <h2 className="student-section-title">Ledger</h2>
+      {!ledger.length && <p className="student-empty">No entries yet.</p>}
       {ledger.map((l) => (
         <div key={l.id} className="student-card">
-          <div className="student-row">
+          <div className="student-row" style={{ justifyContent: "space-between" }}>
             <span className="student-badge">{l.entry_type}</span>
             <strong>{formatInr(Number(l.amount))}</strong>
           </div>
-          <div className="student-muted" style={{ marginBottom: 0 }}>
+          <div className="student-muted" style={{ marginBottom: 0, marginTop: 6 }}>
             {l.note || "—"} · {new Date(l.created_at).toLocaleString("en-IN")}
           </div>
         </div>

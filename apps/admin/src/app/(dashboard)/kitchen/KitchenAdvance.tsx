@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/http";
 
-const NEXT: Record<string, string | null> = {
-  placed: "preparing",
-  preparing: "out_for_delivery",
-  out_for_delivery: "delivered",
+const NEXT: Record<string, { status: string; label: string } | null> = {
+  placed: { status: "preparing", label: "Start packing" },
+  preparing: { status: "out_for_delivery", label: "Send for delivery" },
+  out_for_delivery: { status: "delivered", label: "Mark delivered" },
   delivered: null,
   cancelled: null,
 };
@@ -36,7 +36,7 @@ export function KitchenAdvance({
         try {
           await api(`/api/orders/${orderId}/status`, {
             method: "PATCH",
-            json: { status: next },
+            json: { status: next.status },
           });
           router.refresh();
         } catch (e) {
@@ -46,7 +46,7 @@ export function KitchenAdvance({
         }
       }}
     >
-      → {next.replaceAll("_", " ")}
+      {busy ? "…" : next.label}
     </button>
   );
 }

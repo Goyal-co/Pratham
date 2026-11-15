@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 import { query } from "@pratham/db";
+import { cached, cacheDel } from "./cache";
 
 export type AuthUser = {
   id: string;
@@ -52,15 +53,21 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
     const { payload } = await jwtVerify(token, secretKey());
     const id = String(payload.sub);
-    const { rows } = await query<AuthUser>(
-      `select id, email, role, full_name, phone, hostel, room, referral_code
-       from users where id = $1`,
-      [id]
-    );
-    return rows[0] ?? null;
+    return cached(`user:${id}`, 45_000, async () => {
+      const { rows } = await query<AuthUser>(
+        `select id, email, role, full_name, phone, hostel, room, referral_code
+         from users where id = $1`,
+        [id]
+      );
+      return rows[0] ?? null;
+    });
   } catch {
     return null;
   }
+}
+
+export function invalidateUserCache(userId: string) {
+  cacheDel(`user:${userId}`);
 }
 
 export async function getUserFromRequest(req: NextRequest) {

@@ -20,11 +20,12 @@ export async function GET(req: NextRequest) {
     return json({ items: rows, date: menuDate });
   }
 
-  const items = await getMenuForDate(menuDate);
-  const pub = await query(
-    `select * from menu_day_pubs where menu_date = $1::date`,
-    [menuDate]
-  );
+  const [items, pub] = await Promise.all([
+    getMenuForDate(menuDate),
+    query(`select published_at from menu_day_pubs where menu_date = $1::date`, [
+      menuDate,
+    ]),
+  ]);
   return json({
     items,
     date: menuDate,

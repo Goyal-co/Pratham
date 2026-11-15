@@ -1,7 +1,7 @@
 {
   "id": "/admin",
-  "name": "Tiffin Admin",
-  "short_name": "Tiffin Admin",
+  "name": "Ahariva Admin",
+  "short_name": "Ahariva Admin",
   "description": "Kitchen desk · breakfast, lunch & dinner · COD",
   "start_url": "/",
   "scope": "/",

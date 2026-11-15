@@ -1,21 +1,21 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&display=swap");
 
 :root {
   --orange: #fc8019;
   --orange-dark: #e96b0c;
   --orange-soft: #fff4ea;
-  --bg: #f3f6f2;
+  --bg: #eef2ef;
   --surface: #fff;
-  --ink: #142018;
-  --muted: #5f6d64;
-  --line: #dce5dd;
+  --ink: #101813;
+  --muted: #5a6a60;
+  --line: #d7e0d9;
   --green: #17834a;
   --danger: #d93a3a;
-  --sidebar: #172019;
-  --sidebar-muted: #93a096;
-  --radius: 14px;
-  --shadow: 0 8px 30px rgba(25, 35, 27, 0.08);
+  --sidebar: #101812;
+  --sidebar-muted: #8fa096;
+  --radius: 16px;
+  --shadow: 0 12px 32px rgba(16, 24, 19, 0.07);
+  --shadow-sm: 0 2px 10px rgba(16, 24, 19, 0.04);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }
@@ -28,12 +28,24 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--bg);
+  background:
+    radial-gradient(900px 420px at 100% -10%, rgba(252, 128, 25, 0.08), transparent 55%),
+    var(--bg);
   color: var(--ink);
-  font-family: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-dm-sans), "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+h1 {
+  font-family: var(--font-syne), var(--font-dm-sans), sans-serif;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-family: var(--font-syne), var(--font-dm-sans), sans-serif;
+  letter-spacing: -0.02em;
 }
 
 /* —— Admin auth gate —— */
@@ -82,7 +94,7 @@ body {
 }
 
 .auth-admin .auth-brand {
-  font-family: Syne, "Segoe UI", sans-serif;
+  font-family: var(--font-syne), "Segoe UI", sans-serif;
   font-size: clamp(2.75rem, 6vw, 3.6rem);
   font-weight: 800;
   letter-spacing: -0.045em;
@@ -133,7 +145,7 @@ body {
 
 .auth-admin-card .auth-form-title {
   margin: 0 0 6px;
-  font-family: Syne, "Segoe UI", sans-serif;
+  font-family: var(--font-syne), "Segoe UI", sans-serif;
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -269,7 +281,7 @@ body {
 
 .auth-meal-tile strong {
   display: block;
-  font-family: Syne, "Segoe UI", sans-serif;
+  font-family: var(--font-syne), "Segoe UI", sans-serif;
   font-size: 1.35rem;
   letter-spacing: -0.02em;
   margin-bottom: 8px;
@@ -302,7 +314,7 @@ body {
 }
 
 .auth-admin-visual-inner strong {
-  font-family: Syne, "Segoe UI", sans-serif;
+  font-family: var(--font-syne), "Segoe UI", sans-serif;
   font-size: clamp(2.2rem, 4vw, 3.2rem);
   line-height: 1.05;
   letter-spacing: -0.035em;
@@ -375,18 +387,21 @@ textarea {
 }
 
 .brand {
-  font-size: 1.2rem;
+  font-family: var(--font-syne), sans-serif;
+  font-size: 1.25rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   color: #fff;
 }
 
 .brand span {
   display: block;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 10px;
   color: var(--sidebar-muted);
   font-weight: 500;
-  margin-top: 4px;
+  margin-top: 5px;
+  letter-spacing: 0.02em;
 }
 
 .close-nav {
@@ -395,19 +410,25 @@ textarea {
 
 .nav a {
   display: block;
-  padding: 10px 12px;
-  border-radius: 9px;
+  padding: 11px 12px;
+  border-radius: 11px;
   color: #c5cdc7;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   font-size: 13px;
-  min-height: 40px;
+  min-height: 42px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.nav a:hover,
+.nav a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
 .nav a.active {
   background: var(--orange);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(252, 128, 25, 0.28);
 }
 
 .signout {
@@ -437,6 +458,20 @@ textarea {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.main > .card {
+  margin-bottom: 14px;
+}
+
+a.card.stat {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+a.card.stat:hover {
+  transform: translateY(-1px);
+  border-color: #c9d7cc;
   box-shadow: var(--shadow);
 }
 
@@ -449,16 +484,70 @@ textarea {
 
 .stat h3 {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--muted);
-  font-weight: 500;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .stat p {
-  margin: 8px 0 0;
-  font-size: 1.5rem;
+  margin: 10px 0 0;
+  font-family: var(--font-syne), sans-serif;
+  font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.03em;
+}
+
+.kitchen-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.kitchen-col {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+  min-height: 220px;
+}
+
+.kitchen-col h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.kitchen-col .muted {
+  margin: 4px 0 12px;
+  font-size: 12px;
+}
+
+.kitchen-col[data-stage="placed"] {
+  border-top: 3px solid #6b7c72;
+}
+
+.kitchen-col[data-stage="preparing"] {
+  border-top: 3px solid var(--orange);
+}
+
+.kitchen-col[data-stage="out_for_delivery"] {
+  border-top: 3px solid #2f6fed;
+}
+
+.kitchen-col[data-stage="delivered"] {
+  border-top: 3px solid var(--green);
+}
+
+.kitchen-ticket {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+
+.kitchen-ticket:first-of-type {
+  border-top: 0;
+  padding-top: 0;
 }
 
 .table-wrap {
@@ -489,25 +578,41 @@ textarea {
 
 .btn {
   border: none;
-  border-radius: 9px;
+  border-radius: 11px;
   padding: 10px 14px;
-  background: var(--orange);
+  background: linear-gradient(180deg, #ff8f2e 0%, var(--orange) 100%);
   color: white;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
   min-height: 40px;
+  box-shadow: 0 6px 14px rgba(252, 128, 25, 0.22);
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+
+.btn:hover:not(:disabled) {
+  filter: brightness(1.03);
 }
 
 .btn.secondary {
   background: #fff;
   color: #343434;
   border: 1px solid var(--line);
+  box-shadow: none;
 }
 
 .btn.danger {
   background: #fff0ef;
   color: var(--danger);
+  box-shadow: none;
+}
+
+.menu-edit-form {
+  background: #f7faf7;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 4px 0;
 }
 
 .btn:disabled {

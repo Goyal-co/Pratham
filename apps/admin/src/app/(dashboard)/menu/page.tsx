@@ -1,8 +1,9 @@
 import { query } from "@pratham/db";
-import { formatInr, getZonedParts } from "@pratham/shared";
+import { getZonedParts } from "@pratham/shared";
 import { MenuForm } from "./MenuForm";
 import { PublishMenuButton } from "./PublishMenuButton";
-import { getMenuForDate } from "@/lib/menu";
+import { MenuItemActions, type MenuItemRow } from "./MenuItemActions";
+import { asDateStr, getDaySpecificMenu } from "@/lib/menu";
 
 function addDays(dateStr: string, days: number) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -10,15 +11,27 @@ function addDays(dateStr: string, days: number) {
   return dt.toISOString().slice(0, 10);
 }
 
+function toRow(item: Record<string, unknown>): MenuItemRow {
+  return {
+    id: String(item.id),
+    meal_type: String(item.meal_type),
+    name: String(item.name),
+    description: (item.description as string | null) ?? null,
+    price: item.price as number | string,
+    menu_date: asDateStr(item.menu_date),
+  };
+}
+
 export default async function MenuPage() {
   const { dateStr: today } = getZonedParts();
   const tomorrow = addDays(today, 1);
 
   const [todayItems, tomorrowItems, catalog, pubs] = await Promise.all([
-    getMenuForDate(today),
-    getMenuForDate(tomorrow),
+    getDaySpecificMenu(today),
+    getDaySpecificMenu(tomorrow),
     query(
-      `select * from menu_items where menu_date is null order by meal_type, name`
+      `select * from menu_items where menu_date is null and is_active
+       order by meal_type, name`
     ),
     query(
       `select * from menu_day_pubs where menu_date in ($1::date, $2::date)`,
@@ -28,15 +41,7 @@ export default async function MenuPage() {
 
   const pubMap = Object.fromEntries(
     pubs.rows.map((p) => {
-      const raw = p.menu_date;
-      const key =
-        typeof raw === "string"
-          ? raw.slice(0, 10)
-          : raw instanceof Date
-            ? new Intl.DateTimeFormat("en-CA", {
-                timeZone: "Asia/Kolkata",
-              }).format(raw)
-            : String(raw).slice(0, 10);
+      const key = asDateStr(p.menu_date) || String(p.menu_date).slice(0, 10);
       return [key, p];
     })
   );
@@ -48,12 +53,9 @@ export default async function MenuPage() {
   }: {
     title: string;
     date: string;
-    items: typeof todayItems;
+    items: Awaited<ReturnType<typeof getDaySpecificMenu>>;
   }) {
     const pub = pubMap[date];
-    const datedOnly = items.filter(
-      (i) => i.menu_date && String(i.menu_date).slice(0, 10) === date
-    );
     return (
       <div className="card" style={{ marginBottom: 16 }}>
         <div
@@ -68,12 +70,10 @@ export default async function MenuPage() {
               </span>
             </h2>
             <p className="muted" style={{ marginTop: 0 }}>
-              {datedOnly.length
-                ? `${datedOnly.length} day-specific dish(es); other meals use catalog.`
-                : "Using catalog defaults — add day-specific dishes below."}
-              {pub
-                ? ` · Published${pub.notify_sent_at ? " & notified" : ""}`
-                : " · Not published yet"}
+              {items.length
+                ? `${items.length} dish(es) for this day only`
+                : "No day dishes yet — add above."}
+              {pub ? " · Published" : " · Not published"}
             </p>
           </div>
           <PublishMenuButton date={date} />
@@ -85,31 +85,17 @@ export default async function MenuPage() {
                 <th>Meal</th>
                 <th>Name</th>
                 <th>Price</th>
-                <th>Source</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.id}>
-                  <td style={{ textTransform: "capitalize" }}>{item.meal_type}</td>
-                  <td>
-                    <div>{item.name}</div>
-                    <div className="muted">{item.description}</div>
-                  </td>
-                  <td>{formatInr(Number(item.price))}</td>
-                  <td>
-                    {item.menu_date ? (
-                      <span className="badge">Day menu</span>
-                    ) : (
-                      <span className="muted">Catalog</span>
-                    )}
-                  </td>
-                </tr>
+                <MenuItemActions key={item.id} item={toRow(item)} />
               ))}
               {!items.length && (
                 <tr>
                   <td colSpan={4} className="muted">
-                    No items yet.
+                    No items for this date.
                   </td>
                 </tr>
               )}
@@ -124,24 +110,22 @@ export default async function MenuPage() {
     <div>
       <h1 style={{ marginTop: 0 }}>Menu</h1>
       <p className="muted">
-        Set tomorrow&apos;s dishes, then <strong>Publish &amp; notify</strong> so
-        students get a push. Closing / opening reminders run automatically via cron.
+        Add dishes for a date (usually tomorrow), then publish to notify students.
       </p>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Add dish</h2>
+        <MenuForm defaultDate={tomorrow} />
+      </div>
 
       <DayTable title="Tomorrow" date={tomorrow} items={tomorrowItems} />
       <DayTable title="Today" date={today} items={todayItems} />
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <h2 style={{ marginTop: 0 }}>Add item</h2>
-        <p className="muted">
-          Pick tomorrow&apos;s date to schedule next-day menu, or leave date empty for
-          catalog defaults.
-        </p>
-        <MenuForm defaultDate={tomorrow} />
-      </div>
-
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Catalog defaults</h2>
+        <p className="muted">
+          Used only when a date has no day-specific dishes yet.
+        </p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -149,21 +133,20 @@ export default async function MenuPage() {
                 <th>Meal</th>
                 <th>Name</th>
                 <th>Price</th>
-                <th>Active</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {catalog.rows.map((item) => (
-                <tr key={item.id}>
-                  <td style={{ textTransform: "capitalize" }}>{item.meal_type}</td>
-                  <td>
-                    <div>{item.name}</div>
-                    <div className="muted">{item.description}</div>
-                  </td>
-                  <td>{formatInr(Number(item.price))}</td>
-                  <td>{item.is_active ? "Yes" : "No"}</td>
-                </tr>
+                <MenuItemActions key={item.id} item={toRow(item)} />
               ))}
+              {!catalog.rows.length && (
+                <tr>
+                  <td colSpan={4} className="muted">
+                    No catalog items.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

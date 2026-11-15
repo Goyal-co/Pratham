@@ -1,7 +1,7 @@
 {
   "id": "/app",
-  "name": "Tiffin",
-  "short_name": "Tiffin",
+  "name": "Ahariva",
+  "short_name": "Ahariva",
   "description": "Breakfast, lunch & dinner · cash on delivery",
   "start_url": "/app",
   "scope": "/app",

@@ -3,6 +3,7 @@ import { query } from "@pratham/db";
 import { getUserFromRequest } from "@/lib/auth";
 import { error, json } from "@/lib/api";
 import { writeAudit } from "@/lib/audit";
+import { invalidateSettingsCache } from "@/lib/services";
 
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -69,6 +70,7 @@ export async function PATCH(req: NextRequest) {
       lead,
     ]
   );
+  invalidateSettingsCache();
   await writeAudit({
     actorId: user.id,
     action: "settings.update",

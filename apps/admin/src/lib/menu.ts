@@ -1,5 +1,4 @@
 import { query } from "@pratham/db";
-import type { MealType } from "@pratham/shared";
 
 /** Normalize pg date / Date / ISO string → YYYY-MM-DD (IST calendar intent). */
 export function asDateStr(value: unknown): string | null {
@@ -26,30 +25,33 @@ function normalizeItem<T extends { menu_date?: unknown }>(row: T) {
   return { ...row, menu_date: asDateStr(row.menu_date) };
 }
 
-/**
- * Menu for a calendar day:
- * - If day-specific items exist for a meal, use those
- * - Otherwise fall back to catalog items (menu_date is null)
- */
-export async function getMenuForDate(menuDate: string) {
-  const { rows: dated } = await query(
+/** Day-specific dishes only (no catalog merge). */
+export async function getDaySpecificMenu(menuDate: string) {
+  const { rows } = await query(
     `select * from menu_items
      where is_active and menu_date = $1::date
      order by meal_type, name`,
     [menuDate]
   );
-  const mealsWithDated = new Set(dated.map((r) => r.meal_type as MealType));
+  return rows.map(normalizeItem);
+}
+
+/**
+ * Menu for a calendar day:
+ * - If any day-specific items exist for that date → return ONLY those
+ *   (so adding one dish does not pull in the whole catalog)
+ * - Otherwise fall back to catalog (menu_date is null)
+ */
+export async function getMenuForDate(menuDate: string) {
+  const dated = await getDaySpecificMenu(menuDate);
+  if (dated.length) return dated;
 
   const { rows: catalog } = await query(
     `select * from menu_items
      where is_active and menu_date is null
      order by meal_type, name`
   );
-
-  const fallback = catalog.filter(
-    (r) => !mealsWithDated.has(r.meal_type as MealType)
-  );
-  return [...dated, ...fallback].map(normalizeItem);
+  return catalog.map(normalizeItem);
 }
 
 export async function summarizeMenu(menuDate: string) {

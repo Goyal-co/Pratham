@@ -11,6 +11,7 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("80");
   const [menuDate, setMenuDate] = useState(defaultDate || "");
+  const [asCatalog, setAsCatalog] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
@@ -24,7 +25,7 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
           name,
           description,
           price: Number(price),
-          menu_date: menuDate || null,
+          menu_date: asCatalog ? null : menuDate || defaultDate || null,
         },
       });
       setName("");
@@ -46,10 +47,9 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
             type="date"
             value={menuDate}
             onChange={(e) => setMenuDate(e.target.value)}
+            disabled={asCatalog}
+            required={!asCatalog}
           />
-          <span className="muted" style={{ fontWeight: 400 }}>
-            Leave empty for catalog default (used when no day menu is set).
-          </span>
         </label>
         <label className="field">
           Meal
@@ -60,6 +60,17 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
           </select>
         </label>
       </div>
+      <label
+        className="field"
+        style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+      >
+        <input
+          type="checkbox"
+          checked={asCatalog}
+          onChange={(e) => setAsCatalog(e.target.checked)}
+        />
+        <span style={{ fontWeight: 500 }}>Save as catalog default (no date)</span>
+      </label>
       <div className="row">
         <label className="field">
           Name
@@ -83,7 +94,7 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
           />
         </label>
         <button className="btn" disabled={busy}>
-          {busy ? "Adding…" : "Add item"}
+          {busy ? "Adding…" : "Add dish"}
         </button>
       </div>
     </form>

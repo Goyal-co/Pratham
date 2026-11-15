@@ -6,7 +6,6 @@ import {
   MEAL_LABELS,
   formatCountdown,
   formatInr,
-  getOpenMeals,
   getZonedParts,
   isMealOpen,
   minutesUntilCutoff,
@@ -26,6 +25,16 @@ function addDaysYmd(dateStr: string, days: number) {
   return `${yy}-${mm}-${dd}`;
 }
 
+function weekdayLabel(ymd: string) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
 export default function StudentHomePage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [tomorrowItems, setTomorrowItems] = useState<MenuItem[]>([]);
@@ -35,39 +44,63 @@ export default function StudentHomePage() {
     outstanding_balance: 0,
     wallet_credit: 0,
   });
+  const [plans, setPlans] = useState<{ meal_type: MealType }[]>([]);
+  const [cancellations, setCancellations] = useState<
+    { meal_type: MealType; cancel_date: string }[]
+  >([]);
+  const [calendarMenu, setCalendarMenu] = useState<MenuItem[]>([]);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
   const [msg, setMsg] = useState<string | null>(null);
   const [name, setName] = useState("there");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [skipMeals, setSkipMeals] = useState<Record<MealType, boolean>>({
+    breakfast: false,
+    lunch: false,
+    dinner: false,
+  });
+  const [skipBusy, setSkipBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const today = getZonedParts().dateStr;
-    const tomorrow = addDaysYmd(today, 1);
-    const [menu, tomorrowMenu, settings, acct, me] = await Promise.all([
-      api<{ items: MenuItem[] }>(`/api/menu?date=${today}`),
-      api<{ items: MenuItem[] }>(`/api/menu?date=${tomorrow}`),
-      api<{ settings: Record<string, string | number> }>("/api/settings"),
-      api<{ account: typeof account }>("/api/account"),
-      api<{ user: { full_name?: string } }>("/api/auth/me"),
-    ]);
-    setItems(menu.items ?? []);
-    setTomorrowItems(tomorrowMenu.items ?? []);
-    if (settings.settings) {
+    const data = await api<{
+      todayItems: MenuItem[];
+      tomorrowItems: MenuItem[];
+      settings: Record<string, string | number>;
+      account: {
+        credit_limit: number;
+        outstanding_balance: number;
+        wallet_credit: number;
+      };
+      user: { full_name?: string };
+      plans?: { meal_type: MealType }[];
+      cancellations?: { meal_type: MealType; cancel_date: string }[];
+      date?: string;
+    }>("/api/app/home");
+    setItems(data.todayItems ?? []);
+    setTomorrowItems(data.tomorrowItems ?? []);
+    setPlans(data.plans ?? []);
+    setCancellations(data.cancellations ?? []);
+    if (data.settings) {
       setCutoffs({
-        breakfast: String(settings.settings.breakfast_cutoff),
-        lunch: String(settings.settings.lunch_cutoff),
-        dinner: String(settings.settings.dinner_cutoff),
+        breakfast: String(data.settings.breakfast_cutoff),
+        lunch: String(data.settings.lunch_cutoff),
+        dinner: String(data.settings.dinner_cutoff),
       });
     }
-    if (acct.account) {
+    if (data.account) {
       setAccount({
-        credit_limit: Number(acct.account.credit_limit),
-        outstanding_balance: Number(acct.account.outstanding_balance),
-        wallet_credit: Number(acct.account.wallet_credit),
+        credit_limit: Number(data.account.credit_limit),
+        outstanding_balance: Number(data.account.outstanding_balance),
+        wallet_credit: Number(data.account.wallet_credit),
       });
     }
-    if (me.user?.full_name) setName(me.user.full_name.split(" ")[0] || "there");
+    if (data.user?.full_name) {
+      setName(data.user.full_name.split(" ")[0] || "there");
+    }
+    if (data.date) {
+      setSelectedDate((prev) => prev ?? addDaysYmd(data.date!, 1));
+    }
     setLoading(false);
   }, []);
 
@@ -79,13 +112,45 @@ export default function StudentHomePage() {
 
   const { dateStr } = useMemo(() => getZonedParts(now), [now]);
   const tomorrowStr = useMemo(() => addDaysYmd(dateStr, 1), [dateStr]);
-  const openMeals = useMemo(() => getOpenMeals(cutoffs, now), [cutoffs, now]);
   const remaining = account.credit_limit - account.outstanding_balance;
   const blocked = account.outstanding_balance >= account.credit_limit;
 
-  async function place(item: MenuItem) {
-    if (!isMealOpen(item.meal_type, cutoffs, now)) {
-      setMsg(`${MEAL_LABELS[item.meal_type]} ordering is closed.`);
+  const calendarDates = useMemo(
+    () => Array.from({ length: 14 }, (_, i) => addDaysYmd(dateStr, i)),
+    [dateStr]
+  );
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    let cancelled = false;
+    api<{ items: MenuItem[] }>(`/api/menu?date=${selectedDate}`)
+      .then((data) => {
+        if (!cancelled) setCalendarMenu(data.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setCalendarMenu([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    const next: Record<MealType, boolean> = {
+      breakfast: false,
+      lunch: false,
+      dinner: false,
+    };
+    for (const c of cancellations) {
+      if (c.cancel_date === selectedDate) next[c.meal_type] = true;
+    }
+    setSkipMeals(next);
+  }, [selectedDate, cancellations]);
+
+  async function place(item: MenuItem, orderDate: string, forTomorrow: boolean) {
+    if (!forTomorrow && !isMealOpen(item.meal_type, cutoffs, now)) {
+      setMsg(`${MEAL_LABELS[item.meal_type]} ordering is closed for today.`);
       return;
     }
     try {
@@ -95,7 +160,7 @@ export default function StudentHomePage() {
           meal_type: item.meal_type,
           menu_item_id: item.id,
           quantity: qty[item.id] ?? 1,
-          order_date: dateStr,
+          order_date: orderDate,
         },
       });
       setMsg(
@@ -107,141 +172,307 @@ export default function StudentHomePage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div>
-        <h1 className="student-title">Home</h1>
-        <p className="student-muted">Loading menu…</p>
-      </div>
+  async function submitSkips() {
+    if (!selectedDate) return;
+    const meal_types = (["breakfast", "lunch", "dinner"] as MealType[]).filter(
+      (m) => skipMeals[m]
     );
+    if (!meal_types.length) {
+      setMsg("Select at least one meal to skip.");
+      return;
+    }
+    setSkipBusy(true);
+    try {
+      await api("/api/plans/cancel-day", {
+        method: "POST",
+        json: { cancel_date: selectedDate, meal_types },
+      });
+      setMsg(`Skipped ${meal_types.join(", ")} on ${selectedDate}`);
+      await load();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Skip failed");
+    } finally {
+      setSkipBusy(false);
+    }
   }
 
-  return (
-    <div>
-      <h1 className="student-title">Hi {name}</h1>
-      <p className="student-muted">
-        {dateStr} · Credit left {formatInr(remaining)} · Wallet{" "}
-        {formatInr(account.wallet_credit)}
-      </p>
-      {msg && (
-        <div className="student-card" style={{ borderColor: "var(--s-accent)" }}>
-          {msg}
-        </div>
-      )}
-      {blocked && (
-        <div className="student-card" style={{ background: "#fff0ef" }}>
-          Credit limit reached. Clear outstanding with COD collection.
-        </div>
-      )}
+  function MealList({
+    mealItems,
+    orderDate,
+    forTomorrow,
+  }: {
+    mealItems: MenuItem[];
+    orderDate: string;
+    forTomorrow: boolean;
+  }) {
+    const meals = (["breakfast", "lunch", "dinner"] as MealType[]).filter(
+      (meal) => {
+        const open = forTomorrow || isMealOpen(meal, cutoffs, now);
+        const has = mealItems.some((i) => i.meal_type === meal);
+        return forTomorrow ? has : open && has;
+      }
+    );
 
-      {(["breakfast", "lunch", "dinner"] as MealType[]).map((meal) => {
-        const open = isMealOpen(meal, cutoffs, now);
-        const mins = minutesUntilCutoff(meal, cutoffs, now);
-        const mealItems = items.filter((i) => i.meal_type === meal);
-        return (
-          <div key={meal}>
-            <div className="student-row" style={{ margin: "8px 0" }}>
-              <strong style={{ textTransform: "capitalize" }}>
-                {MEAL_LABELS[meal]}
-              </strong>
-              <span className="student-badge">
-                {open ? formatCountdown(mins) : `Closed · ${cutoffs[meal]} IST`}
-              </span>
-            </div>
-            {!mealItems.length && (
-              <p className="student-muted">No dishes for this meal.</p>
-            )}
-            {mealItems.map((item) => (
-              <div
-                key={item.id}
-                className="student-card"
-                style={{ opacity: open ? 1 : 0.55 }}
-              >
-                <div style={{ fontWeight: 800 }}>{item.name}</div>
-                {item.description && (
-                  <div className="student-muted">{item.description}</div>
-                )}
-                <div className="student-row" style={{ marginTop: 10 }}>
-                  <strong>{formatInr(Number(item.price))}</strong>
-                  <div className="student-qty" style={{ marginLeft: "auto" }}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setQty((q) => ({
-                          ...q,
-                          [item.id]: Math.max(1, (q[item.id] ?? 1) - 1),
-                        }))
-                      }
-                    >
-                      −
-                    </button>
-                    <span>{qty[item.id] ?? 1}</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setQty((q) => ({
-                          ...q,
-                          [item.id]: Math.min(10, (q[item.id] ?? 1) + 1),
-                        }))
-                      }
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <button
-                  className="student-btn"
-                  style={{ marginTop: 10 }}
-                  type="button"
-                  disabled={!open || blocked}
-                  onClick={() => place(item)}
-                >
-                  {open ? "Order COD" : "Closed"}
-                </button>
-              </div>
-            ))}
-          </div>
-        );
-      })}
+    if (!meals.length) {
+      const anyOpenToday = (["breakfast", "lunch", "dinner"] as MealType[]).some(
+        (m) => isMealOpen(m, cutoffs, now)
+      );
+      return (
+        <p className="student-empty">
+          {forTomorrow
+            ? "No dishes published for tomorrow yet."
+            : anyOpenToday && !mealItems.length
+              ? "No dishes for today’s open meals."
+              : "All meals for today are closed."}
+        </p>
+      );
+    }
 
-      {!openMeals.length && (
-        <p className="student-muted">All meals closed for today.</p>
-      )}
-
-      <div style={{ marginTop: 28 }}>
-        <h2 className="student-title" style={{ fontSize: "1.15rem" }}>
-          Tomorrow’s menu
-        </h2>
-        <p className="student-muted">{tomorrowStr} · preview only</p>
-        {!tomorrowItems.length && (
-          <p className="student-muted">Not published yet.</p>
-        )}
-        {(["breakfast", "lunch", "dinner"] as MealType[]).map((meal) => {
-          const mealItems = tomorrowItems.filter((i) => i.meal_type === meal);
-          if (!mealItems.length) return null;
+    return (
+      <>
+        {meals.map((meal) => {
+          const open = forTomorrow || isMealOpen(meal, cutoffs, now);
+          const mins = minutesUntilCutoff(meal, cutoffs, now);
+          const list = mealItems.filter((i) => i.meal_type === meal);
           return (
-            <div key={`tm-${meal}`}>
-              <div className="student-row" style={{ margin: "8px 0" }}>
-                <strong style={{ textTransform: "capitalize" }}>
-                  {MEAL_LABELS[meal]}
-                </strong>
+            <div key={`${orderDate}-${meal}`} className="student-meal-block">
+              <div className="student-meal-label">
+                <strong>{MEAL_LABELS[meal]}</strong>
+                <span className={`student-badge ${open || forTomorrow ? "ok" : "muted"}`}>
+                  {forTomorrow
+                    ? `Cutoff ${cutoffs[meal]} IST`
+                    : open
+                      ? formatCountdown(mins)
+                      : "Closed"}
+                </span>
               </div>
-              {mealItems.map((item) => (
-                <div key={`tm-${item.id}`} className="student-card">
-                  <div style={{ fontWeight: 800 }}>{item.name}</div>
-                  {item.description && (
-                    <div className="student-muted">{item.description}</div>
-                  )}
-                  <div className="student-row" style={{ marginTop: 8 }}>
-                    <strong>{formatInr(Number(item.price))}</strong>
-                    <span className="student-badge">Tomorrow</span>
+              {list.map((item) => (
+                <div key={item.id} className="student-dish">
+                  <div>
+                    <div className="student-dish-name">{item.name}</div>
+                    {item.description ? (
+                      <div className="student-dish-desc">{item.description}</div>
+                    ) : null}
+                    <div className="student-dish-price">
+                      {formatInr(Number(item.price))}
+                    </div>
+                  </div>
+                  <div className="student-dish-actions">
+                    <div className="student-qty">
+                      <button
+                        type="button"
+                        aria-label="Decrease quantity"
+                        onClick={() =>
+                          setQty((q) => ({
+                            ...q,
+                            [item.id]: Math.max(1, (q[item.id] ?? 1) - 1),
+                          }))
+                        }
+                      >
+                        −
+                      </button>
+                      <span>{qty[item.id] ?? 1}</span>
+                      <button
+                        type="button"
+                        aria-label="Increase quantity"
+                        onClick={() =>
+                          setQty((q) => ({
+                            ...q,
+                            [item.id]: Math.min(10, (q[item.id] ?? 1) + 1),
+                          }))
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button
+                      className="student-btn compact"
+                      type="button"
+                      disabled={blocked || (!forTomorrow && !open)}
+                      onClick={() => place(item, orderDate, forTomorrow)}
+                    >
+                      Add · COD
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           );
         })}
+      </>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <div className="student-header">
+          <div className="student-header-copy">
+            <p className="student-kicker">Ahariva</p>
+            <h1 className="student-title">Loading…</h1>
+          </div>
+        </div>
+        <div className="student-panel">
+          <div className="student-panel-body">
+            <div className="student-skeleton" style={{ width: "40%" }} />
+            <div className="student-skeleton" style={{ width: "90%", height: 64 }} />
+            <div className="student-skeleton" style={{ width: "80%", height: 64 }} />
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  const planMeals = new Set(plans.map((p) => p.meal_type));
+
+  return (
+    <div>
+      <div className="student-header">
+        <div className="student-header-copy">
+          <p className="student-kicker">Ahariva</p>
+          <h1 className="student-title">Hi {name}</h1>
+          <p className="student-muted" style={{ marginBottom: 0 }}>
+            Wallet {formatInr(account.wallet_credit)}
+          </p>
+        </div>
+        <div className="student-credit-pill">
+          <span>Credit left</span>
+          <strong>{formatInr(remaining)}</strong>
+        </div>
+      </div>
+
+      {msg && <div className="student-banner info">{msg}</div>}
+      {blocked && (
+        <div className="student-banner warn">
+          Credit limit reached. Clear outstanding after COD collection.
+        </div>
+      )}
+
+      <section className="student-panel">
+        <div className="student-panel-head">
+          <h2>Today’s menu</h2>
+          <span className="student-badge">{dateStr}</span>
+        </div>
+        <div className="student-panel-body">
+          <MealList mealItems={items} orderDate={dateStr} forTomorrow={false} />
+        </div>
+      </section>
+
+      <section className="student-panel">
+        <div className="student-panel-head">
+          <h2>Tomorrow’s menu</h2>
+          <span className="student-badge">{tomorrowStr}</span>
+        </div>
+        <div className="student-panel-body">
+          <p className="student-panel-note">
+            Order ahead now — meal cutoffs apply on that day.
+          </p>
+          <MealList
+            mealItems={tomorrowItems}
+            orderDate={tomorrowStr}
+            forTomorrow={true}
+          />
+        </div>
+      </section>
+
+      <h2 className="student-section-title">Plan calendar</h2>
+      <p className="student-muted">
+        Browse meals by date, then skip the plan meals you won’t need.
+      </p>
+
+      <div className="student-cal-strip">
+        {calendarDates.map((d) => {
+          const active = selectedDate === d;
+          const skipped = cancellations.some((c) => c.cancel_date === d);
+          return (
+            <button
+              key={d}
+              type="button"
+              className={`student-cal-chip${active ? " active" : ""}${skipped ? " skipped" : ""}`}
+              onClick={() => setSelectedDate(d)}
+            >
+              <strong>
+                {d === dateStr ? "Today" : d === tomorrowStr ? "Tmrw" : weekdayLabel(d)}
+              </strong>
+              <span>{d.slice(5)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedDate && (
+        <section className="student-panel">
+          <div className="student-panel-head">
+            <h2>{weekdayLabel(selectedDate)}</h2>
+            <span className="student-badge muted">{selectedDate}</span>
+          </div>
+          <div className="student-panel-body">
+            {!calendarMenu.length && (
+              <p className="student-empty">No dishes for this date yet.</p>
+            )}
+            {(["breakfast", "lunch", "dinner"] as MealType[]).map((meal) => {
+              const list = calendarMenu.filter((i) => i.meal_type === meal);
+              if (!list.length) return null;
+              return (
+                <div key={`cal-${meal}`} className="student-meal-block">
+                  <div className="student-meal-label">
+                    <strong>{MEAL_LABELS[meal]}</strong>
+                  </div>
+                  {list.map((item) => (
+                    <div key={item.id} className="student-dish">
+                      <div>
+                        <div className="student-dish-name">{item.name}</div>
+                        <div className="student-dish-price">
+                          {formatInr(Number(item.price))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+
+            {planMeals.size > 0 ? (
+              <div style={{ marginTop: 8 }}>
+                <strong>Skip plan meals</strong>
+                <p className="student-panel-note">
+                  Choose meals to skip on this date (before cutoff if today).
+                </p>
+                {(["breakfast", "lunch", "dinner"] as MealType[])
+                  .filter((m) => planMeals.has(m))
+                  .map((meal) => (
+                    <label key={`skip-${meal}`} className="student-check">
+                      <input
+                        type="checkbox"
+                        checked={skipMeals[meal]}
+                        onChange={(e) =>
+                          setSkipMeals((s) => ({
+                            ...s,
+                            [meal]: e.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Skip {MEAL_LABELS[meal]}</span>
+                    </label>
+                  ))}
+                <button
+                  className="student-btn"
+                  style={{ marginTop: 14 }}
+                  type="button"
+                  disabled={skipBusy}
+                  onClick={submitSkips}
+                >
+                  {skipBusy ? "Saving…" : "Save skips"}
+                </button>
+              </div>
+            ) : (
+              <p className="student-empty" style={{ marginTop: 12 }}>
+                No fixed plans yet — set them under Plans.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

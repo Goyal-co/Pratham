@@ -73,9 +73,9 @@ export async function sendResetEmail(opts: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: from.includes("@") ? `Tiffin <${from}>` : from,
+      from: from.includes("@") ? `Ahariva <${from}>` : from,
       to: [opts.to],
-      subject: "Reset your Tiffin password",
+      subject: "Reset your Ahariva password",
       html: `<p>Hi ${opts.name || "there"},</p>
 <p>Reset your password using this link (valid ${TTL_MINUTES} minutes):</p>
 <p><a href="${opts.resetUrl}">${opts.resetUrl}</a></p>

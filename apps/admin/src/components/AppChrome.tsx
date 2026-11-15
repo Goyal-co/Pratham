@@ -14,11 +14,10 @@ const links = [
   { href: "/students", label: "Students", short: "Students" },
   { href: "/menu", label: "Menu", short: "Menu" },
   { href: "/referrals", label: "Referrals", short: "Invite" },
-  { href: "/audit", label: "Audit", short: "Audit" },
   { href: "/settings", label: "Settings", short: "Settings" },
 ];
 
-const mobilePrimary = ["/", "/orders", "/kitchen", "/students", "/settings"];
+const mobilePrimary = ["/", "/orders", "/kitchen", "/menu", "/settings"];
 
 export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -49,7 +48,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
         <div className="brand-row">
           <div className="brand">
             <RotatingBrandInline />
-            <span>Admin · B / L / D · COD</span>
+            <span>Admin · meals · COD</span>
           </div>
           <button
             className="icon-button close-nav"

@@ -8,6 +8,7 @@ import {
   type MealType,
 } from "@pratham/shared";
 import { writeAudit } from "./audit";
+import { cached, cacheDel } from "./cache";
 import { sendExpoPush } from "./push";
 
 export type AppSettingsRow = {
@@ -22,10 +23,16 @@ export type AppSettingsRow = {
 };
 
 export async function getSettings() {
-  const { rows } = await query<AppSettingsRow>(
-    `select * from app_settings where id = 1`
-  );
-  return rows[0];
+  return cached("settings", 30_000, async () => {
+    const { rows } = await query<AppSettingsRow>(
+      `select * from app_settings where id = 1`
+    );
+    return rows[0];
+  });
+}
+
+export function invalidateSettingsCache() {
+  cacheDel("settings");
 }
 
 export async function notifyUser(

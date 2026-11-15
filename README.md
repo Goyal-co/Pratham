@@ -1,4 +1,4 @@
-# Tiffin
+# Ahariva
 
 Breakfast, lunch & dinner ordering — admin desk + student web PWA (Next.js) with plain PostgreSQL. One Vercel deploy serves both.
 
