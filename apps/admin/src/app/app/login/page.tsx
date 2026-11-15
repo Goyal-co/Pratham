@@ -83,6 +83,9 @@ export default function StudentLoginPage() {
         <button className="student-btn" disabled={busy} type="submit">
           {busy ? "Signing in…" : "Sign in"}
         </button>
+        <Link className="student-link" href={studentHref(base, "/login/forgot")}>
+          Forgot password?
+        </Link>
         <Link className="student-link" href={studentHref(base, "/signup")}>
           New here? Create account
         </Link>

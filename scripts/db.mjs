@@ -76,6 +76,7 @@ if (action === "up") {
     "db/migrations/001_init.sql",
     "db/migrations/002_audit_log.sql",
     "db/migrations/003_daily_menu_reminders.sql",
+    "db/migrations/004_password_reset.sql",
   ];
   const client = pgClient();
   await client.connect();
@@ -116,6 +117,45 @@ if (action === "up") {
     console.log(
       "Students are NOT seeded — they sign up in the student app (Create account)."
     );
+  } finally {
+    await client.end();
+  }
+} else if (action === "purge" || action === "seed:purge") {
+  // Keep admin users + app_settings; wipe students and operational data
+  const client = pgClient();
+  await client.connect();
+  try {
+    await client.query("begin");
+    // Break cycles / clear ops data first
+    await client.query(`truncate table
+      reminder_log,
+      menu_day_pubs,
+      plan_cancellations,
+      referrals,
+      ledger_entries,
+      notifications,
+      push_tokens,
+      orders,
+      fixed_plans,
+      student_accounts,
+      audit_logs,
+      menu_items
+      restart identity cascade`);
+    const { rowCount } = await client.query(
+      `delete from users where role <> 'admin'`
+    );
+    await client.query("commit");
+    const admins = await client.query(
+      `select email, full_name from users where role = 'admin' order by email`
+    );
+    console.log(`Purged non-admin users: ${rowCount ?? 0}`);
+    console.log("Kept admins:");
+    for (const a of admins.rows) {
+      console.log(` - ${a.email} (${a.full_name || "—"})`);
+    }
+  } catch (e) {
+    await client.query("rollback").catch(() => null);
+    throw e;
   } finally {
     await client.end();
   }
@@ -165,7 +205,7 @@ if (action === "up") {
   }
 } else {
   console.log(
-    "Usage: node scripts/db.mjs <up|down|create-db|migrate|seed|seed:admin|seed:demo>"
+    "Usage: node scripts/db.mjs <up|down|create-db|migrate|seed|seed:admin|seed:demo|purge>"
   );
   process.exit(1);
 }

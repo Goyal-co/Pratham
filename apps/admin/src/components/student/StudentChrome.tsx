@@ -12,8 +12,10 @@ export function StudentChrome({ children }: { children: React.ReactNode }) {
   const auth =
     pathname === "/app/login" ||
     pathname === "/app/signup" ||
+    pathname.startsWith("/app/login/") ||
     pathname === "/login" ||
-    pathname === "/signup";
+    pathname === "/signup" ||
+    pathname.startsWith("/login/");
 
   const tabs = [
     {

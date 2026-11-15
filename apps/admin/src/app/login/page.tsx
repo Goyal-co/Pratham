@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
@@ -97,6 +98,13 @@ export default function LoginPage() {
             <button className="btn auth-admin-submit" disabled={loading}>
               {loading ? "Signing in…" : "Sign in"}
             </button>
+            <Link
+              href="/login/forgot"
+              className="auth-inline-link"
+              style={{ display: "block", textAlign: "center", marginTop: 14 }}
+            >
+              Forgot password?
+            </Link>
           </form>
 
           <p className="auth-admin-foot">

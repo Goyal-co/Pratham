@@ -41,6 +41,10 @@ export function studentRewritePath(pathname: string): string | null {
   if (pathname === "/" || pathname === "") return "/app";
   if (pathname === "/login") return "/app/login";
   if (pathname === "/signup") return "/app/signup";
+  if (pathname === "/login/forgot") return "/app/login/forgot";
+  if (pathname === "/login/reset") return "/app/login/reset";
+  if (pathname === "/forgot") return "/app/login/forgot";
+  if (pathname === "/reset") return "/app/login/reset";
   const map: Record<string, string> = {
     "/orders": "/app/orders",
     "/plans": "/app/plans",

@@ -145,7 +145,12 @@ export async function middleware(request: NextRequest) {
 
   const isStudentApp = path === "/app" || path.startsWith("/app/");
   const isStudentPublic =
-    path === "/app/login" || path === "/app/signup";
+    path === "/app/login" ||
+    path === "/app/signup" ||
+    path === "/app/login/forgot" ||
+    path === "/app/login/reset" ||
+    path.startsWith("/app/login/forgot") ||
+    path.startsWith("/app/login/reset");
   const isAdminLogin = path.startsWith("/login") && !studentHost;
 
   // —— Student surface ——

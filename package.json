@@ -17,6 +17,7 @@
     "db:seed": "node scripts/db.mjs seed",
     "db:seed:admin": "node scripts/db.mjs seed:admin",
     "db:seed:demo": "node scripts/db.mjs seed:demo",
+    "db:purge": "node scripts/db.mjs purge",
     "test:e2e": "node scripts/e2e-smoke.mjs",
     "test:features": "node scripts/e2e-features.mjs",
     "test:pwa": "node scripts/e2e-pwa.mjs",
