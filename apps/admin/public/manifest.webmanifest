@@ -1,8 +1,8 @@
 {
   "id": "/app",
-  "name": "Pratham Tiffin",
-  "short_name": "Pratham",
-  "description": "Order tiffin · cash on delivery",
+  "name": "Rotatinal",
+  "short_name": "Rotatinal",
+  "description": "Rotational breakfast, lunch & dinner · cash on delivery",
   "start_url": "/app",
   "scope": "/app",
   "display": "standalone",

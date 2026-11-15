@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   const email = String(body.email || "admin@gmail.com").toLowerCase();
   const password = String(body.password || "Admin@1234");
-  const fullName = String(body.full_name || "Pratham Admin");
+  const fullName = String(body.full_name || "Rotatinal Admin");
 
   const existing = await query(`select id, role from users where email = $1`, [
     email,

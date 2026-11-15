@@ -47,8 +47,8 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand-row">
           <div className="brand">
-            Pratham
-            <span>Tiffin Admin · COD</span>
+            Rotatinal
+            <span>Admin · B / L / D · COD</span>
           </div>
           <button
             className="icon-button close-nav"
@@ -84,7 +84,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
             ☰
           </button>
           <div className="topbar-title">
-            {links.find((l) => l.href === pathname)?.label || "Pratham"}
+            {links.find((l) => l.href === pathname)?.label || "Rotatinal"}
           </div>
           <span className="date-chip">
             {new Date().toLocaleDateString("en-IN", {

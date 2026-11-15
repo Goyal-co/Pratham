@@ -41,10 +41,11 @@ export default function StudentLoginPage() {
   return (
     <div className="auth-student">
       <div className="auth-student-hero">
-        <p className="auth-eyebrow">Daily tiffin</p>
-        <h1 className="auth-brand">Pratham</h1>
+        <p className="auth-eyebrow">Breakfast · Lunch · Dinner</p>
+        <h1 className="auth-brand">Rotatinal</h1>
         <p className="auth-tagline">
-          Fresh meals to your hostel — cash on delivery, skip when you need to.
+          Rotational meals to your hostel — cash on delivery, skip when you need
+          to.
         </p>
       </div>
 
@@ -52,7 +53,9 @@ export default function StudentLoginPage() {
 
       <form className="auth-student-card" onSubmit={onSubmit}>
         <h2 className="auth-form-title">Welcome back</h2>
-        <p className="student-muted">Sign in to order breakfast, lunch, or dinner.</p>
+        <p className="student-muted">
+          Sign in to order today’s rotational breakfast, lunch, or dinner.
+        </p>
         <label className="student-field">
           Email
           <input

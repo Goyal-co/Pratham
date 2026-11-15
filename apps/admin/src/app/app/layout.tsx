@@ -3,13 +3,13 @@ import { StudentChrome } from "@/components/student/StudentChrome";
 import "./student.css";
 
 export const metadata: Metadata = {
-  title: "Pratham Tiffin",
-  description: "Order tiffin · cash on delivery",
-  applicationName: "Pratham",
+  title: "Rotatinal",
+  description: "Rotational breakfast, lunch & dinner · cash on delivery",
+  applicationName: "Rotatinal",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Pratham",
+    title: "Rotatinal",
     statusBarStyle: "default",
   },
   icons: {

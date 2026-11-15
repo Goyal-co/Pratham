@@ -1,6 +1,6 @@
-# Pratham Tiffin
+# Rotatinal
 
-Monorepo for the **admin desk + student web PWA** (Next.js) with plain PostgreSQL. One Vercel deploy serves both.
+Rotational meals — **breakfast, lunch & dinner** — with an admin desk + student web PWA (Next.js) and plain PostgreSQL. One Vercel deploy serves both.
 
 ## Stack
 

@@ -50,10 +50,11 @@ export default function StudentSignupPage() {
   return (
     <div className="auth-student">
       <div className="auth-student-hero">
-        <p className="auth-eyebrow">Join the kitchen</p>
-        <h1 className="auth-brand">Pratham</h1>
+        <p className="auth-eyebrow">Breakfast · Lunch · Dinner</p>
+        <h1 className="auth-brand">Rotatinal</h1>
         <p className="auth-tagline">
-          Create your account, set hostel details, and start ordering COD meals.
+          Create your account, set hostel details, and start ordering rotational
+          COD meals.
         </p>
       </div>
 

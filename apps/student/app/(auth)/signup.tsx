@@ -39,7 +39,7 @@ export default function SignupScreen() {
 
   return (
     <Screen>
-      <Title>Join Pratham</Title>
+      <Title>Join Rotatinal</Title>
       <Muted>Optional invite code unlocks referral rewards for your friend.</Muted>
       <Field label="Full name" value={fullName} onChangeText={setFullName} />
       <Field

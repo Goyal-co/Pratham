@@ -25,7 +25,7 @@ export async function GET(
           fontFamily: "sans-serif",
         }}
       >
-        P
+        R
       </div>
     ),
     { width: size, height: size }

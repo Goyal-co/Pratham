@@ -1,8 +1,8 @@
 {
   "id": "/admin",
-  "name": "Pratham Admin",
-  "short_name": "Pratham Admin",
-  "description": "Tiffin kitchen desk · COD",
+  "name": "Rotatinal Admin",
+  "short_name": "Rotatinal Admin",
+  "description": "Rotatinal kitchen desk · breakfast, lunch & dinner · COD",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

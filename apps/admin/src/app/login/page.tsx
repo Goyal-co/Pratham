@@ -46,9 +46,10 @@ export default function LoginPage() {
       <div className="auth-admin-panel">
         <div className="auth-admin-brand">
           <p className="auth-eyebrow">Kitchen desk</p>
-          <h1 className="auth-brand">Pratham</h1>
+          <h1 className="auth-brand">Rotatinal</h1>
           <p className="auth-tagline">
-            Run orders, menu, and COD collections — installable on your phone.
+            Kitchen desk for rotational breakfast, lunch & dinner — COD,
+            installable on your phone.
           </p>
         </div>
 
@@ -93,7 +94,7 @@ export default function LoginPage() {
       <div className="auth-admin-visual" aria-hidden>
         <div className="auth-admin-visual-inner">
           <span>Breakfast · Lunch · Dinner</span>
-          <strong>COD kitchen ops</strong>
+          <strong>Rotational meal ops</strong>
         </div>
       </div>
     </main>

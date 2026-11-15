@@ -22,14 +22,14 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  let payload = { title: "Pratham Admin", body: "Kitchen update", data: {} };
+  let payload = { title: "Rotatinal Admin", body: "Kitchen update", data: {} };
   try {
     if (event.data) payload = { ...payload, ...event.data.json() };
   } catch {
     if (event.data) payload.body = event.data.text();
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title || "Pratham Admin", {
+    self.registration.showNotification(payload.title || "Rotatinal Admin", {
       body: payload.body || "",
       icon: "/icons/192",
       badge: "/icons/192",

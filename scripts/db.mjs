@@ -100,7 +100,7 @@ if (action === "up") {
   try {
     const email = (process.env.ADMIN_EMAIL || "admin@gmail.com").toLowerCase();
     const password = process.env.ADMIN_PASSWORD || "Admin@1234";
-    const fullName = process.env.ADMIN_NAME || "Pratham Admin";
+    const fullName = process.env.ADMIN_NAME || "Rotatinal Admin";
     const adminHash = await bcrypt.hash(password, 10);
     await client.query(
       `insert into users (email, password_hash, role, full_name)
