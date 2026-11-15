@@ -44,60 +44,92 @@ export default function LoginPage() {
 
   return (
     <main className="auth-admin">
-      <div className="auth-admin-panel">
-        <div className="auth-admin-brand">
-          <p className="auth-eyebrow">Kitchen desk</p>
-          <RotatingBrand className="auth-brand" />
-          <p className="auth-tagline">
-            Kitchen desk for breakfast, lunch & dinner — COD, installable on
-            your phone.
+      <section className="auth-admin-panel">
+        <div className="auth-admin-panel-inner">
+          <header className="auth-admin-brand">
+            <p className="auth-eyebrow">Kitchen desk</p>
+            <RotatingBrand className="auth-brand" />
+            <p className="auth-tagline">
+              Run breakfast, lunch & dinner orders — COD collections, menu, and
+              kitchen status.
+            </p>
+          </header>
+
+          <AdminPwa />
+
+          <form className="auth-admin-card" onSubmit={onSubmit}>
+            <div className="auth-admin-card-head">
+              <h2 className="auth-form-title">Admin login</h2>
+              <p className="auth-form-sub">
+                Students order at{" "}
+                <a href={studentUrl} className="auth-inline-link">
+                  the student app
+                </a>
+                .
+              </p>
+            </div>
+
+            <label className="field">
+              Email
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="username"
+                placeholder="admin@gmail.com"
+              />
+            </label>
+            <label className="field">
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+              />
+            </label>
+
+            {error && <p className="auth-error">{error}</p>}
+
+            <button className="btn auth-admin-submit" disabled={loading}>
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+
+          <p className="auth-admin-foot">
+            Secure staff access · COD only · IST cutoffs
           </p>
         </div>
+      </section>
 
-        <AdminPwa />
-
-        <form className="auth-admin-card" onSubmit={onSubmit}>
-          <h2 className="auth-form-title">Admin login</h2>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Students order at{" "}
-            <a href={studentUrl} className="auth-inline-link">
-              the student app
-            </a>
-            .
-          </p>
-          <label className="field">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="username"
-              placeholder="admin@gmail.com"
-            />
-          </label>
-          <label className="field">
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </label>
-          {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-          <button className="btn" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-      </div>
-      <div className="auth-admin-visual" aria-hidden>
+      <aside className="auth-admin-visual" aria-hidden>
+        <div className="auth-admin-visual-glow" />
+        <div className="auth-admin-visual-grid">
+          <article className="auth-meal-tile">
+            <span>Breakfast</span>
+            <strong>Until 06:00</strong>
+            <p>Fixed plans + ad-hoc extras</p>
+          </article>
+          <article className="auth-meal-tile">
+            <span>Lunch</span>
+            <strong>Until 11:00</strong>
+            <p>Kitchen prep & dispatch</p>
+          </article>
+          <article className="auth-meal-tile">
+            <span>Dinner</span>
+            <strong>Until 17:00</strong>
+            <p>COD balance clear</p>
+          </article>
+        </div>
         <div className="auth-admin-visual-inner">
           <span>Breakfast · Lunch · Dinner</span>
           <strong>Meal ops desk</strong>
+          <p>Orders, menu publish, students, referrals — one installable desk.</p>
         </div>
-      </div>
+      </aside>
     </main>
   );
 }
