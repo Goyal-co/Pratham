@@ -1,27 +1,19 @@
 import { NextRequest } from "next/server";
 import { error, json } from "@/lib/api";
+import { authorizeCron } from "@/lib/cron-auth";
 import { generateFixedPlanOrders } from "@/lib/services";
 import { writeAudit } from "@/lib/audit";
 
 /**
  * Secured cron endpoint for fixed-plan auto-orders.
  * Vercel Cron invokes GET; local scripts may POST.
- * Auth: Authorization: Bearer $CRON_SECRET (Vercel sets this automatically when CRON_SECRET is configured).
+ * Auth: Authorization: Bearer $CRON_SECRET
  */
 async function run(req: NextRequest) {
-  const secret =
-    process.env.CRON_SECRET || process.env.BOOTSTRAP_SECRET || "pratham-bootstrap";
-  const header = req.headers.get("authorization") || "";
-  const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!authorizeCron(req)) return error("Forbidden", 403);
+
   const body =
     req.method === "POST" ? await req.json().catch(() => ({})) : {};
-  const provided =
-    bearer ||
-    body.secret ||
-    req.nextUrl.searchParams.get("secret") ||
-    "";
-  if (provided !== secret) return error("Forbidden", 403);
-
   const date =
     body.date || req.nextUrl.searchParams.get("date") || undefined;
   const created = await generateFixedPlanOrders(date);

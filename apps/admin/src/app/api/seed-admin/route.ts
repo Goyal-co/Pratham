@@ -3,7 +3,7 @@ import { query } from "@pratham/db";
 import { hashPassword } from "@/lib/auth";
 import { error, json } from "@/lib/api";
 
-/** One-time bootstrap: POST { email, password, full_name, secret } */
+/** One-time bootstrap: POST { email, password, full_name, secret } — create only, never promote. */
 export async function POST(req: NextRequest) {
   if (
     process.env.NODE_ENV === "production" &&
@@ -11,20 +11,29 @@ export async function POST(req: NextRequest) {
   ) {
     return error("Bootstrap disabled in production", 403);
   }
-  const body = await req.json();
-  const bootstrap = process.env.BOOTSTRAP_SECRET || "pratham-bootstrap";
+
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") return error("Invalid JSON", 400);
+
+  const bootstrap =
+    process.env.NODE_ENV === "production"
+      ? process.env.BOOTSTRAP_SECRET
+      : process.env.BOOTSTRAP_SECRET || "pratham-bootstrap";
+  if (!bootstrap) return error("BOOTSTRAP_SECRET is not configured", 500);
   if (body.secret !== bootstrap) return error("Forbidden", 403);
 
-  const email = String(body.email || "admin@pratham.local").toLowerCase();
-  const password = String(body.password || "admin123");
+  const email = String(body.email || "admin@gmail.com").toLowerCase();
+  const password = String(body.password || "Admin@1234");
   const fullName = String(body.full_name || "Pratham Admin");
 
-  const existing = await query(`select id from users where email = $1`, [email]);
+  const existing = await query(`select id, role from users where email = $1`, [
+    email,
+  ]);
   if (existing.rows[0]) {
-    await query(`update users set role = 'admin' where id = $1`, [
-      existing.rows[0].id,
-    ]);
-    return json({ ok: true, updated: true, email });
+    return error(
+      "User already exists — bootstrap will not promote or overwrite accounts",
+      409
+    );
   }
 
   const hash = await hashPassword(password);

@@ -98,8 +98,8 @@ if (action === "up") {
   const client = pgClient();
   await client.connect();
   try {
-    const email = (process.env.ADMIN_EMAIL || "admin@pratham.local").toLowerCase();
-    const password = process.env.ADMIN_PASSWORD || "admin123";
+    const email = (process.env.ADMIN_EMAIL || "admin@gmail.com").toLowerCase();
+    const password = process.env.ADMIN_PASSWORD || "Admin@1234";
     const fullName = process.env.ADMIN_NAME || "Pratham Admin";
     const adminHash = await bcrypt.hash(password, 10);
     await client.query(

@@ -110,8 +110,8 @@ async function main() {
     const { status, json } = await req(admin, "/api/auth/login", {
       method: "POST",
       body: JSON.stringify({
-        email: "admin@pratham.local",
-        password: "admin123",
+        email: "admin@gmail.com",
+        password: "Admin@1234",
       }),
     });
     assert("admin login", status === 200 && json?.user?.role === "admin");
@@ -567,17 +567,17 @@ async function main() {
     assert(`page ${path}`, status === 200 && text.includes(needle));
   }
 
-  // —— Demo student login still works ——
+  // —— Created invitee can re-login ——
   {
-    const demo = cookieJar();
-    const { status, json } = await req(demo, "/api/auth/login", {
+    const again = cookieJar();
+    const { status, json } = await req(again, "/api/auth/login", {
       method: "POST",
       body: JSON.stringify({
-        email: "rahul@demo.local",
+        email: inviteeEmail,
         password: "password123",
       }),
     });
-    assert("demo student login", status === 200 && json?.user?.role === "student");
+    assert("invitee re-login", status === 200 && json?.user?.role === "student");
   }
 
   console.log(

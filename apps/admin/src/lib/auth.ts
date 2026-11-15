@@ -18,7 +18,13 @@ export type AuthUser = {
 const COOKIE = "pratham_token";
 
 function secretKey() {
-  const secret = process.env.JWT_SECRET || "dev-pratham-secret-change-me";
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET is required in production");
+    }
+    return new TextEncoder().encode("dev-pratham-secret-change-me");
+  }
   return new TextEncoder().encode(secret);
 }
 

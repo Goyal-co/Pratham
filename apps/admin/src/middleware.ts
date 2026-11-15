@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const COOKIE = "pratham_token";
 
-/** Lightweight HS256 verify for Edge middleware (avoids jose CompressionStream warnings). */
 async function verifyHs256(token: string, secret: string) {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
@@ -38,8 +37,69 @@ function base64UrlToBytes(input: string) {
   return bytes;
 }
 
+function normalizeOrigin(url: string) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+}
+
+function allowedOrigin(request: NextRequest): string | null {
+  const origin = request.headers.get("origin");
+  if (!origin) return null; // same-origin / non-browser
+  const app = process.env.NEXT_PUBLIC_APP_URL
+    ? normalizeOrigin(process.env.NEXT_PUBLIC_APP_URL)
+    : "";
+  if (app && normalizeOrigin(origin) === app) return origin;
+  // Dev convenience: allow localhost variants when APP_URL is localhost
+  if (
+    process.env.NODE_ENV !== "production" &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+  ) {
+    return origin;
+  }
+  return null;
+}
+
+function corsHeaders(request: NextRequest) {
+  const allowed = allowedOrigin(request);
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+  if (allowed) {
+    headers["Access-Control-Allow-Origin"] = allowed;
+    headers["Access-Control-Allow-Credentials"] = "true";
+    headers.Vary = "Origin";
+  }
+  return headers;
+}
+
+function jwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET is required in production");
+    }
+    return "dev-pratham-secret-change-me";
+  }
+  return secret;
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+
+  // PWA / static assets
+  if (
+    path === "/manifest.webmanifest" ||
+    path === "/admin-manifest.webmanifest" ||
+    path === "/admin-sw.js" ||
+    path === "/app/sw.js" ||
+    path.startsWith("/icons/")
+  ) {
+    return NextResponse.next();
+  }
 
   if (path.startsWith("/api")) {
     if (request.method === "OPTIONS") {
@@ -55,22 +115,54 @@ export async function middleware(request: NextRequest) {
     return res;
   }
 
-  const isLogin = path.startsWith("/login");
   const token = request.cookies.get(COOKIE)?.value;
-  const secret = process.env.JWT_SECRET || "dev-pratham-secret-change-me";
+  const secret = jwtSecret();
   let role: string | null = null;
   if (token) {
     const payload = await verifyHs256(token, secret);
     role = payload?.role ? String(payload.role) : null;
   }
 
-  if (!role && !isLogin) {
+  const isStudentApp = path === "/app" || path.startsWith("/app/");
+  const isStudentPublic =
+    path === "/app/login" || path === "/app/signup";
+  const isAdminLogin = path.startsWith("/login");
+
+  // —— Student PWA (/app) ——
+  if (isStudentApp) {
+    if (!role && !isStudentPublic) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/app/login";
+      return NextResponse.redirect(url);
+    }
+    if (role === "student" && isStudentPublic) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/app";
+      return NextResponse.redirect(url);
+    }
+    if (role === "admin" && !isStudentPublic) {
+      // Admins use the desk at /
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  // —— Admin desk ——
+  if (role === "student") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/app";
+    return NextResponse.redirect(url);
+  }
+
+  if (!role && !isAdminLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (role && role !== "admin" && !isLogin) {
+  if (role && role !== "admin" && !isAdminLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("error", "admin_only");
@@ -79,23 +171,13 @@ export async function middleware(request: NextRequest) {
     return res;
   }
 
-  if (role === "admin" && isLogin) {
+  if (role === "admin" && isAdminLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
-}
-
-function corsHeaders(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  };
 }
 
 export const config = {

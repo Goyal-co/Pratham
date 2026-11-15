@@ -149,7 +149,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
           Closing reminder (minutes before)
           <input
             type="number"
-            min={5}
+            min={10}
             max={180}
             value={form.reminder_lead_minutes ?? 30}
             onChange={(e) =>

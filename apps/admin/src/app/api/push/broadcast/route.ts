@@ -19,8 +19,13 @@ export async function POST(req: NextRequest) {
       [body.title, body.body, JSON.stringify({ type: "broadcast" })]
     );
   }
-  const result = await sendExpoPush(ids, body.title, body.body, {
-    type: "broadcast",
-  });
+  let result = { pushes: 0, web: 0, expo: 0 };
+  try {
+    result = await sendExpoPush(ids, body.title, body.body, {
+      type: "broadcast",
+    });
+  } catch {
+    // In-app notifications already written; push delivery is best-effort
+  }
   return json({ recipients: ids.length, ...result });
 }

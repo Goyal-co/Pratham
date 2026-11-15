@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/http";
+import { AdminPwa } from "@/components/AdminPwa";
 
 const links = [
   { href: "/", label: "Dashboard", short: "Home" },
@@ -93,7 +94,10 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
             })}
           </span>
         </header>
-        <div className="main">{children}</div>
+        <div className="main">
+          <AdminPwa />
+          {children}
+        </div>
       </div>
 
       <nav className="mobile-bottom" aria-label="Primary">

@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
+import { AdminPwa } from "@/components/AdminPwa";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,9 +44,16 @@ export default function LoginPage() {
         padding: 24,
       }}
     >
-      <form className="card" style={{ width: "min(420px, 100%)" }} onSubmit={onSubmit}>
+      <div style={{ width: "min(420px, 100%)" }}>
+      <AdminPwa />
+      <form className="card" style={{ width: "100%" }} onSubmit={onSubmit}>
         <h1 style={{ marginTop: 0 }}>Admin login</h1>
-        <p className="muted">COD kitchen desk for Pratham Tiffin · Postgres</p>
+        <p className="muted">
+          Installable kitchen desk · Students:{" "}
+          <a href="/app" style={{ color: "var(--orange-dark)", fontWeight: 700 }}>
+            /app
+          </a>
+        </p>
         <label className="field">
           Email
           <input
@@ -69,6 +77,7 @@ export default function LoginPage() {
           {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      </div>
     </main>
   );
 }

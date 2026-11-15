@@ -44,8 +44,8 @@ export async function PATCH(req: NextRequest) {
     body.reminder_lead_minutes != null
       ? Number(body.reminder_lead_minutes)
       : null;
-  if (lead != null && (lead < 5 || lead > 180 || Number.isNaN(lead))) {
-    return error("reminder_lead_minutes must be 5–180");
+  if (lead != null && (lead < 10 || lead > 180 || Number.isNaN(lead))) {
+    return error("reminder_lead_minutes must be 10–180");
   }
 
   const { rows } = await query(

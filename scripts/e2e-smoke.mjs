@@ -85,8 +85,8 @@ async function main() {
     const { status, json } = await req(admin, "/api/auth/login", {
       method: "POST",
       body: JSON.stringify({
-        email: "admin@pratham.local",
-        password: "admin123",
+        email: "admin@gmail.com",
+        password: "Admin@1234",
       }),
     });
     assert("admin login", status === 200 && json?.user?.role === "admin", JSON.stringify(json));
@@ -94,7 +94,7 @@ async function main() {
   }
   {
     const { status, json } = await req(admin, "/api/auth/me");
-    assert("admin /me", status === 200 && json?.user?.email === "admin@pratham.local", JSON.stringify(json));
+    assert("admin /me", status === 200 && json?.user?.email === "admin@gmail.com", JSON.stringify(json));
   }
 
   console.log("— Admin pages (nav clicks)");
@@ -106,7 +106,7 @@ async function main() {
     ["/menu", ["Menu"]],
     ["/referrals", ["Referrals"]],
     ["/audit", ["Audit"]],
-    ["/settings", ["Settings", "Cutoff"]],
+    ["/settings", ["Settings", "acceptance"]],
   ];
   for (const [path, needles] of pages) {
     await clickPage(admin, path, needles);
@@ -395,7 +395,7 @@ async function main() {
     const admin2 = cookieJar();
     await req(admin2, "/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email: "admin@pratham.local", password: "admin123" }),
+      body: JSON.stringify({ email: "admin@gmail.com", password: "Admin@1234" }),
     });
     const { text } = await req(admin2, "/");
     assert("mobile bottom nav present", text.includes("mobile-bottom") || text.includes("menu-trigger"));

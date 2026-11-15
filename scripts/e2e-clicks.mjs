@@ -32,8 +32,8 @@ async function main() {
     console.log("— Login");
     await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
     assert("login page", await page.locator("h1").textContent().then((t) => t?.includes("Admin")));
-    await page.fill('input[type="email"]', "admin@pratham.local");
-    await page.fill('input[type="password"]', "admin123");
+    await page.fill('input[type="email"]', "admin@gmail.com");
+    await page.fill('input[type="password"]', "Admin@1234");
     await page.click('button.btn');
     await page.waitForURL((url) => !url.pathname.includes("login"), { timeout: 15000 });
     assert("login redirects to app", page.url().replace(/\/$/, "").endsWith(":3000") || page.url().includes(BASE.replace(/\/$/, "")));

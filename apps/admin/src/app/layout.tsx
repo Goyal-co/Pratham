@@ -5,10 +5,15 @@ export const metadata: Metadata = {
   title: "Pratham Tiffin Admin",
   description: "Admin dashboard for Pratham tiffin service",
   applicationName: "Pratham Admin",
+  manifest: "/admin-manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Pratham Admin",
     statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/icons/192", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/192", sizes: "192x192", type: "image/png" }],
   },
 };
 
