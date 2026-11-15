@@ -77,6 +77,8 @@ if (action === "up") {
     "db/migrations/002_audit_log.sql",
     "db/migrations/003_daily_menu_reminders.sql",
     "db/migrations/004_password_reset.sql",
+    "db/migrations/005_credit_hold_until_delivered.sql",
+    "db/migrations/006_wallet_primary_balance.sql",
   ];
   const client = pgClient();
   await client.connect();

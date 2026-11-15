@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { query } from "@pratham/db";
-import { getZonedParts } from "@pratham/shared";
+import { creditAvailable, debtFromWallet, getZonedParts } from "@pratham/shared";
 import { error, json } from "@/lib/api";
 import { getUserFromRequest } from "@/lib/auth";
 import { getMenuForDate } from "@/lib/menu";
@@ -15,7 +15,6 @@ function addDaysYmd(dateStr: string, days: number) {
   return `${yy}-${mm}-${dd}`;
 }
 
-/** One round-trip bootstrap for the student home screen. */
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user || user.role !== "student") return error("Unauthorized", 401);
@@ -30,13 +29,16 @@ export async function GET(req: NextRequest) {
       getMenuForDate(dateStr),
       getMenuForDate(tomorrow),
       query(
-        `select credit_limit, outstanding_balance, wallet_credit
+        `select credit_limit, wallet_credit
          from student_accounts where student_id = $1`,
         [user.id]
       ),
       query(
-        `select id, meal_type, is_active from fixed_plans
-         where student_id = $1 and is_active`,
+        `select fp.id, fp.meal_type, fp.is_active, fp.menu_item_id,
+                mi.name as menu_item_name
+         from fixed_plans fp
+         left join menu_items mi on mi.id = fp.menu_item_id
+         where fp.student_id = $1 and fp.is_active`,
         [user.id]
       ),
       query(
@@ -48,6 +50,10 @@ export async function GET(req: NextRequest) {
         [user.id, dateStr, calendarEnd]
       ),
     ]);
+
+  const acct = account.rows[0] ?? { credit_limit: 0, wallet_credit: 0 };
+  const wallet = Number(acct.wallet_credit);
+  const limit = Number(acct.credit_limit);
 
   return json({
     user: {
@@ -66,10 +72,11 @@ export async function GET(req: NextRequest) {
       meal_type: r.meal_type,
       cancel_date: String(r.cancel_date).slice(0, 10),
     })),
-    account: account.rows[0] ?? {
-      credit_limit: 0,
-      outstanding_balance: 0,
-      wallet_credit: 0,
+    account: {
+      credit_limit: limit,
+      wallet_credit: wallet,
+      debt: debtFromWallet(wallet),
+      credit_available: creditAvailable(wallet, limit),
     },
   });
 }

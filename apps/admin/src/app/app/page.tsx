@@ -41,10 +41,13 @@ export default function StudentHomePage() {
   const [cutoffs, setCutoffs] = useState<Cutoffs>(DEFAULT_CUTOFFS);
   const [account, setAccount] = useState({
     credit_limit: 0,
-    outstanding_balance: 0,
     wallet_credit: 0,
+    debt: 0,
+    credit_available: 0,
   });
-  const [plans, setPlans] = useState<{ meal_type: MealType }[]>([]);
+  const [plans, setPlans] = useState<
+    { meal_type: MealType; menu_item_id?: string | null; menu_item_name?: string | null }[]
+  >([]);
   const [cancellations, setCancellations] = useState<
     { meal_type: MealType; cancel_date: string }[]
   >([]);
@@ -69,11 +72,16 @@ export default function StudentHomePage() {
       settings: Record<string, string | number>;
       account: {
         credit_limit: number;
-        outstanding_balance: number;
         wallet_credit: number;
+        debt?: number;
+        credit_available?: number;
       };
       user: { full_name?: string };
-      plans?: { meal_type: MealType }[];
+      plans?: {
+        meal_type: MealType;
+        menu_item_id?: string | null;
+        menu_item_name?: string | null;
+      }[];
       cancellations?: { meal_type: MealType; cancel_date: string }[];
       date?: string;
     }>("/api/app/home");
@@ -89,10 +97,15 @@ export default function StudentHomePage() {
       });
     }
     if (data.account) {
+      const wallet = Number(data.account.wallet_credit);
+      const limit = Number(data.account.credit_limit);
       setAccount({
-        credit_limit: Number(data.account.credit_limit),
-        outstanding_balance: Number(data.account.outstanding_balance),
-        wallet_credit: Number(data.account.wallet_credit),
+        credit_limit: limit,
+        wallet_credit: wallet,
+        debt: Number(data.account.debt ?? Math.max(0, -wallet)),
+        credit_available: Number(
+          data.account.credit_available ?? wallet + limit
+        ),
       });
     }
     if (data.user?.full_name) {
@@ -112,8 +125,8 @@ export default function StudentHomePage() {
 
   const { dateStr } = useMemo(() => getZonedParts(now), [now]);
   const tomorrowStr = useMemo(() => addDaysYmd(dateStr, 1), [dateStr]);
-  const remaining = account.credit_limit - account.outstanding_balance;
-  const blocked = account.outstanding_balance >= account.credit_limit;
+  const remaining = account.credit_available;
+  const blocked = remaining <= 0;
 
   const calendarDates = useMemo(
     () => Array.from({ length: 14 }, (_, i) => addDaysYmd(dateStr, i)),
@@ -246,6 +259,16 @@ export default function StudentHomePage() {
                       : "Closed"}
                 </span>
               </div>
+              {plans.some((p) => p.meal_type === meal) && (
+                <p className="student-panel-note">
+                  Covered by your plan
+                  {plans.find((p) => p.meal_type === meal)?.menu_item_name
+                    ? ` (${plans.find((p) => p.meal_type === meal)?.menu_item_name})`
+                    : ""}
+                  . Change combo under Plans. Buttons below are extra COD
+                  orders only.
+                </p>
+              )}
               {list.map((item) => (
                 <div key={item.id} className="student-dish">
                   <div>
@@ -291,7 +314,9 @@ export default function StudentHomePage() {
                       disabled={blocked || (!forTomorrow && !open)}
                       onClick={() => place(item, orderDate, forTomorrow)}
                     >
-                      Add · COD
+                      {plans.some((p) => p.meal_type === meal)
+                        ? "Extra · COD"
+                        : "Add · COD"}
                     </button>
                   </div>
                 </div>
@@ -333,10 +358,11 @@ export default function StudentHomePage() {
           <h1 className="student-title">Hi {name}</h1>
           <p className="student-muted" style={{ marginBottom: 0 }}>
             Wallet {formatInr(account.wallet_credit)}
+            {account.debt > 0 ? ` · Debt ${formatInr(account.debt)}` : ""}
           </p>
         </div>
         <div className="student-credit-pill">
-          <span>Credit left</span>
+          <span>Available</span>
           <strong>{formatInr(remaining)}</strong>
         </div>
       </div>

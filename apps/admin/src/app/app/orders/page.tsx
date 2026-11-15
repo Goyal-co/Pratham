@@ -40,8 +40,11 @@ export default function StudentOrdersPage() {
   return (
     <div>
       <p className="student-kicker">Ahariva</p>
+      <p className="student-kicker">Ahariva</p>
       <h1 className="student-title">Orders</h1>
-      <p className="student-muted">Track meals · pay cash on delivery</p>
+      <p className="student-muted">
+        Recent meals · full calendar & filters are under Profile
+      </p>
       {!orders.length && <p className="student-empty">No orders yet.</p>}
       {orders.map((o) => (
         <div key={o.id} className="student-card">

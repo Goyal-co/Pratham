@@ -1,29 +1,32 @@
 import { query } from "@pratham/db";
 import { formatInr, getZonedParts } from "@pratham/shared";
 import { KitchenAdvance } from "./KitchenAdvance";
+import { MarkMealDelivered } from "./MarkMealDelivered";
 
 const STAGES = [
   {
     key: "placed",
-    title: "New orders",
-    hint: "Accept into packing",
+    title: "New",
+    hint: "Start packing",
   },
   {
     key: "preparing",
     title: "Packing",
-    hint: "Kitchen packing tiffins",
+    hint: "In kitchen",
   },
   {
     key: "out_for_delivery",
     title: "Out for delivery",
-    hint: "On the way to hostels",
+    hint: "On the way",
   },
   {
     key: "delivered",
     title: "Delivered",
-    hint: "Done for today",
+    hint: "Done",
   },
 ] as const;
+
+const MEALS = ["breakfast", "lunch", "dinner"] as const;
 
 export default async function KitchenPage({
   searchParams,
@@ -45,21 +48,48 @@ export default async function KitchenPage({
     [date]
   );
 
+  const openByMeal = Object.fromEntries(
+    MEALS.map((meal) => [
+      meal,
+      rows.filter(
+        (o) =>
+          o.meal_type === meal &&
+          ["placed", "preparing", "out_for_delivery"].includes(o.status)
+      ).length,
+    ])
+  ) as Record<(typeof MEALS)[number], number>;
+
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Kitchen board</h1>
-      <p className="muted">
-        New → Packing → Out for delivery → Delivered · {date}
-      </p>
-      <form className="row" style={{ marginBottom: 16 }}>
+      <h1 style={{ marginTop: 0 }}>Kitchen</h1>
+      <p className="muted">{date} · mark a whole meal delivered when the round is done</p>
+
+      <form className="row" style={{ marginBottom: 12 }}>
         <label className="field">
-          Order date
+          Date
           <input type="date" name="date" defaultValue={date} />
         </label>
-        <button className="btn" type="submit">
+        <button className="btn secondary" type="submit">
           Load
         </button>
       </form>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h2 style={{ marginTop: 0, marginBottom: 8 }}>Deliver whole meal</h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Marks the meal round done. Wallet was already charged when ordered.
+        </p>
+        <div className="row">
+          {MEALS.map((meal) => (
+            <MarkMealDelivered
+              key={meal}
+              date={date}
+              meal={meal}
+              count={openByMeal[meal]}
+            />
+          ))}
+        </div>
+      </div>
 
       <div className="kitchen-board">
         {STAGES.map((stage) => {
@@ -85,9 +115,11 @@ export default async function KitchenPage({
                     <br />
                     {o.phone}
                   </div>
-                  <div style={{ marginTop: 10 }}>
-                    <KitchenAdvance orderId={o.id} status={o.status} />
-                  </div>
+                  {stage.key !== "delivered" && (
+                    <div style={{ marginTop: 10 }}>
+                      <KitchenAdvance orderId={o.id} status={o.status} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

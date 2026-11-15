@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { query } from "@pratham/db";
 import { getUserFromRequest } from "@/lib/auth";
 import { error, json } from "@/lib/api";
-import { getSettings, notifyUser } from "@/lib/services";
+import {
+  cancelOpenOrdersForMealDate,
+  getSettings,
+  notifyUser,
+} from "@/lib/services";
 import { getZonedParts, isMealOpen, type MealType } from "@pratham/shared";
 
 const MEALS: MealType[] = ["breakfast", "lunch", "dinner"];
@@ -28,6 +32,7 @@ export async function POST(req: NextRequest) {
 
   const cancelled: string[] = [];
   const skipped: string[] = [];
+  let refundedOrders = 0;
 
   for (const mealType of mealTypes) {
     const active = await query(
@@ -62,6 +67,15 @@ export async function POST(req: NextRequest) {
        on conflict (student_id, meal_type, cancel_date) do update set created_at = now()`,
       [user.id, mealType, cancelDate]
     );
+
+    // If a plan order was already generated for that day, cancel it and restore credits.
+    refundedOrders += await cancelOpenOrdersForMealDate({
+      studentId: user.id,
+      mealType,
+      orderDate: cancelDate,
+      source: "fixed_plan",
+    });
+
     cancelled.push(mealType);
   }
 
@@ -72,9 +86,16 @@ export async function POST(req: NextRequest) {
   await notifyUser(
     user.id,
     "Meals skipped",
-    `${cancelled.join(", ")} skipped for ${cancelDate}`,
+    `${cancelled.join(", ")} skipped for ${cancelDate}${
+      refundedOrders ? ` · ${refundedOrders} order(s) refunded to credit` : ""
+    }`,
     { type: "plan_cancelled", meals: cancelled, date: cancelDate }
   );
 
-  return json({ cancelled, skipped, cancel_date: cancelDate });
+  return json({
+    cancelled,
+    skipped,
+    cancel_date: cancelDate,
+    refunded_orders: refundedOrders,
+  });
 }

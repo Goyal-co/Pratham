@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   );
   const { rows: blockedRows } = await query(
     `select count(*)::int as c from student_accounts
-     where outstanding_balance >= credit_limit`
+     where wallet_credit <= -credit_limit`
   );
   const { rows: settingsRows } = await query(
     `select breakfast_cutoff, lunch_cutoff, dinner_cutoff, timezone
