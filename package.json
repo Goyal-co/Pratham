@@ -9,6 +9,7 @@
     "student": "npm run start --workspace=@pratham/student",
     "admin": "npm run dev --workspace=@pratham/admin",
     "admin:build": "npm run build --workspace=@pratham/admin",
+    "vercel-build": "npm run build --workspace=@pratham/admin && node scripts/vercel-postbuild.mjs",
     "db:up": "node scripts/db.mjs up",
     "db:down": "node scripts/db.mjs down",
     "db:create": "node scripts/db.mjs create-db",

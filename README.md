@@ -124,9 +124,10 @@ One deploy: admin desk + student PWA (`/app`) + `/api/*`.
    npm run db:seed:admin
    ```
 2. Vercel → New Project → import this repo.
-3. **Root Directory:** set to **`apps/admin`** (required — Next.js builds `.next` there).  
-   Vercel → Project → Settings → General → Root Directory → `apps/admin`.  
-   This uses [`apps/admin/vercel.json`](apps/admin/vercel.json) (installs from monorepo root, then builds the admin workspace).
+3. **Root Directory** — pick one:
+   - **Recommended:** leave **empty** (repo root). Root [`vercel.json`](vercel.json) runs `npm run vercel-build`, which builds the admin app and copies `apps/admin/.next` → `.next` for Vercel.
+   - **Or** set Root Directory to **`apps/admin`** (uses [`apps/admin/vercel.json`](apps/admin/vercel.json)).
+   - In Vercel → Settings → General, clear **Output Directory** if you set it (leave blank — do not set `.next` or `apps/admin/.next` manually).
 4. Environment variables:
 
    | Name | Notes |
