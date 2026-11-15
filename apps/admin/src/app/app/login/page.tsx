@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
 import { InstallHint } from "@/components/student/InstallHint";
+import { RotatingBrand } from "@/components/RotatingBrand";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 export default function StudentLoginPage() {
@@ -42,10 +43,9 @@ export default function StudentLoginPage() {
     <div className="auth-student">
       <div className="auth-student-hero">
         <p className="auth-eyebrow">Breakfast · Lunch · Dinner</p>
-        <h1 className="auth-brand">Rotatinal</h1>
+        <RotatingBrand className="auth-brand" />
         <p className="auth-tagline">
-          Rotational meals to your hostel — cash on delivery, skip when you need
-          to.
+          Meals to your hostel — cash on delivery, skip when you need to.
         </p>
       </div>
 
@@ -54,7 +54,7 @@ export default function StudentLoginPage() {
       <form className="auth-student-card" onSubmit={onSubmit}>
         <h2 className="auth-form-title">Welcome back</h2>
         <p className="student-muted">
-          Sign in to order today’s rotational breakfast, lunch, or dinner.
+          Sign in to order today’s breakfast, lunch, or dinner.
         </p>
         <label className="student-field">
           Email

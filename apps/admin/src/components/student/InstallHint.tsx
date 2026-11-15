@@ -46,7 +46,7 @@ export function InstallHint() {
     return (
       <div className="auth-install">
         <div>
-          <strong>Install Rotatinal</strong>
+          <strong>Install app</strong>
           <p className="student-muted" style={{ marginBottom: 0 }}>
             Home-screen app for breakfast, lunch & dinner orders.
           </p>

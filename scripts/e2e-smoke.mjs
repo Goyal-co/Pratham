@@ -99,7 +99,7 @@ async function main() {
 
   console.log("— Admin pages (nav clicks)");
   const pages = [
-    ["/", ["Rotatinal", "Kitchen"]],
+    ["/", ["Kitchen", "Orders"]],
     ["/orders", ["Orders"]],
     ["/kitchen", ["Kitchen"]],
     ["/students", ["Students"]],
@@ -399,7 +399,7 @@ async function main() {
     });
     const { text } = await req(admin2, "/");
     assert("mobile bottom nav present", text.includes("mobile-bottom") || text.includes("menu-trigger"));
-    assert("viewport meta present", text.includes("viewport") || text.includes("device-width") || text.includes("Rotatinal"));
+    assert("viewport meta present", text.includes("viewport") || text.includes("device-width") || text.includes("Kitchen"));
   }
 
   console.log(

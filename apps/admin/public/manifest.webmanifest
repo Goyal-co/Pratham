@@ -1,8 +1,8 @@
 {
   "id": "/app",
-  "name": "Rotatinal",
-  "short_name": "Rotatinal",
-  "description": "Rotational breakfast, lunch & dinner · cash on delivery",
+  "name": "Tiffin",
+  "short_name": "Tiffin",
+  "description": "Breakfast, lunch & dinner · cash on delivery",
   "start_url": "/app",
   "scope": "/app",
   "display": "standalone",

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/http";
 import { AdminPwa } from "@/components/AdminPwa";
+import { RotatingBrandInline } from "@/components/RotatingBrand";
 
 const links = [
   { href: "/", label: "Dashboard", short: "Home" },
@@ -47,7 +48,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand-row">
           <div className="brand">
-            Rotatinal
+            <RotatingBrandInline />
             <span>Admin · B / L / D · COD</span>
           </div>
           <button
@@ -84,7 +85,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
             ☰
           </button>
           <div className="topbar-title">
-            {links.find((l) => l.href === pathname)?.label || "Rotatinal"}
+            {links.find((l) => l.href === pathname)?.label || "Kitchen"}
           </div>
           <span className="date-chip">
             {new Date().toLocaleDateString("en-IN", {

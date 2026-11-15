@@ -76,7 +76,7 @@ export function AdminPwa() {
         <div>
           <strong>Add to Home Screen</strong>
           <p className="muted" style={{ marginBottom: 0 }}>
-            Tap Share → Add to Home Screen for Rotatinal Admin.
+            Tap Share → Add to Home Screen for the kitchen desk.
           </p>
         </div>
       </div>

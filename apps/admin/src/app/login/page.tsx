@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
 import { AdminPwa } from "@/components/AdminPwa";
+import { RotatingBrand } from "@/components/RotatingBrand";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,10 +47,10 @@ export default function LoginPage() {
       <div className="auth-admin-panel">
         <div className="auth-admin-brand">
           <p className="auth-eyebrow">Kitchen desk</p>
-          <h1 className="auth-brand">Rotatinal</h1>
+          <RotatingBrand className="auth-brand" />
           <p className="auth-tagline">
-            Kitchen desk for rotational breakfast, lunch & dinner — COD,
-            installable on your phone.
+            Kitchen desk for breakfast, lunch & dinner — COD, installable on
+            your phone.
           </p>
         </div>
 
@@ -94,7 +95,7 @@ export default function LoginPage() {
       <div className="auth-admin-visual" aria-hidden>
         <div className="auth-admin-visual-inner">
           <span>Breakfast · Lunch · Dinner</span>
-          <strong>Rotational meal ops</strong>
+          <strong>Meal ops desk</strong>
         </div>
       </div>
     </main>

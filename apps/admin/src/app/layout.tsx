@@ -2,14 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rotatinal Admin",
-  description:
-    "Admin dashboard for Rotatinal — rotational breakfast, lunch & dinner",
-  applicationName: "Rotatinal Admin",
+  title: "Tiffin Admin",
+  description: "Admin dashboard for breakfast, lunch & dinner · COD",
+  applicationName: "Tiffin Admin",
   manifest: "/admin-manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Rotatinal Admin",
+    title: "Tiffin Admin",
     statusBarStyle: "default",
   },
   icons: {

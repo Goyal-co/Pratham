@@ -65,7 +65,7 @@ async function main() {
   console.log("— Static PWA assets");
   {
     const a = await req(null, "/admin-manifest.webmanifest");
-    assert("admin manifest", a.status === 200 && a.text.includes("Rotatinal Admin"));
+    assert("admin manifest", a.status === 200 && a.text.includes("Tiffin Admin"));
     assert("admin manifest start /", a.text.includes('"start_url": "/"'));
   }
   {

@@ -64,7 +64,7 @@ export default function ReferralsScreen() {
           onPress={async () => {
             try {
               await Share.share({
-                message: `Join Rotatinal (breakfast / lunch / dinner) with my code ${profile?.referral_code}. After you complete ${x} orders, I get ${formatInr(y)} wallet credit!`,
+                message: `Join me for breakfast / lunch / dinner with my code ${profile?.referral_code}. After you complete ${x} orders, I get ${formatInr(y)} wallet credit!`,
               });
             } catch {
               Alert.alert("Share failed");

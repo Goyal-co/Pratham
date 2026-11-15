@@ -20,14 +20,14 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  let payload = { title: "Rotatinal", body: "You have an update", data: {} };
+  let payload = { title: "Tiffin", body: "You have an update", data: {} };
   try {
     if (event.data) payload = { ...payload, ...event.data.json() };
   } catch {
     if (event.data) payload.body = event.data.text();
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title || "Rotatinal", {
+    self.registration.showNotification(payload.title || "Tiffin", {
       body: payload.body || "",
       icon: "/icons/192",
       badge: "/icons/192",

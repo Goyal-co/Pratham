@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
 import { InstallHint } from "@/components/student/InstallHint";
+import { RotatingBrand } from "@/components/RotatingBrand";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 export default function StudentSignupPage() {
@@ -51,10 +52,10 @@ export default function StudentSignupPage() {
     <div className="auth-student">
       <div className="auth-student-hero">
         <p className="auth-eyebrow">Breakfast · Lunch · Dinner</p>
-        <h1 className="auth-brand">Rotatinal</h1>
+        <RotatingBrand className="auth-brand" />
         <p className="auth-tagline">
-          Create your account, set hostel details, and start ordering rotational
-          COD meals.
+          Create your account, set hostel details, and start ordering COD
+          breakfast, lunch & dinner.
         </p>
       </div>
 

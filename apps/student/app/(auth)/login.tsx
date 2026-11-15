@@ -26,7 +26,7 @@ export default function LoginScreen() {
 
   return (
     <Screen contentStyle={{ justifyContent: "center", flexGrow: 1 }}>
-      <Title>Rotatinal</Title>
+      <Title>Tiffin</Title>
       <Muted>Student tiffin · cash on delivery</Muted>
       <Field
         label="Email"

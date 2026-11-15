@@ -79,6 +79,24 @@ body {
   letter-spacing: -0.04em;
   margin: 0 0 10px;
   color: #fff;
+  text-transform: lowercase;
+  min-height: 1.05em;
+}
+
+.brand-rotate {
+  display: inline-block;
+  animation: brand-fade 0.35s ease;
+}
+
+@keyframes brand-fade {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-admin .auth-tagline {
