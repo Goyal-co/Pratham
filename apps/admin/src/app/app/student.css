@@ -1,9 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap");
+
 :root {
-  --s-bg: #fafaf8;
+  --s-bg: #f7f3ee;
   --s-card: #ffffff;
-  --s-ink: #1c1c1c;
-  --s-muted: #686868;
-  --s-line: #eaeaea;
+  --s-ink: #1a1714;
+  --s-muted: #6b635b;
+  --s-line: #e8e0d6;
   --s-accent: #fc8019;
   --s-accent-dark: #e96b0c;
   --s-ok: #17834a;
@@ -14,15 +16,19 @@
 
 .student-shell {
   min-height: 100dvh;
-  background: var(--s-bg);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #ffe0c2 0%, transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, #ffd3a8 0%, transparent 50%),
+    var(--s-bg);
   color: var(--s-ink);
+  font-family: Outfit, "Segoe UI", sans-serif;
   padding-bottom: calc(72px + var(--s-safe-bottom));
 }
 
 .student-shell.auth {
   padding-bottom: var(--s-safe-bottom);
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
 }
 
@@ -32,11 +38,88 @@
   padding: calc(12px + var(--s-safe-top)) 16px 24px;
 }
 
+.student-shell.auth .student-main {
+  max-width: 440px;
+  width: 100%;
+  padding-top: calc(28px + var(--s-safe-top));
+  padding-bottom: 32px;
+}
+
+.auth-student {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-student-hero {
+  padding: 8px 4px 4px;
+}
+
+.auth-eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--s-accent-dark);
+}
+
+.auth-brand {
+  font-family: Fraunces, Georgia, serif;
+  font-size: clamp(2.4rem, 8vw, 3.1rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0 0 10px;
+  color: var(--s-ink);
+}
+
+.auth-tagline {
+  margin: 0;
+  color: var(--s-muted);
+  font-size: 1.02rem;
+  line-height: 1.45;
+  max-width: 28ch;
+}
+
+.auth-form-title {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.auth-student-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--s-line);
+  border-radius: 20px;
+  padding: 18px 16px 16px;
+  box-shadow: 0 18px 50px rgba(80, 40, 10, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.auth-install {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff8f1;
+  border: 1px solid #f0d7bc;
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.auth-install strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
 .student-title {
   font-size: 1.65rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   margin: 0 0 4px;
+  font-family: Outfit, "Segoe UI", sans-serif;
 }
 
 .student-muted {

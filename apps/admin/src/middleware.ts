@@ -1,4 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  allowedAppOrigins,
+  isStudentHost,
+  studentRewritePath,
+} from "@/lib/hosts";
 
 const COOKIE = "pratham_token";
 
@@ -47,12 +52,9 @@ function normalizeOrigin(url: string) {
 
 function allowedOrigin(request: NextRequest): string | null {
   const origin = request.headers.get("origin");
-  if (!origin) return null; // same-origin / non-browser
-  const app = process.env.NEXT_PUBLIC_APP_URL
-    ? normalizeOrigin(process.env.NEXT_PUBLIC_APP_URL)
-    : "";
-  if (app && normalizeOrigin(origin) === app) return origin;
-  // Dev convenience: allow localhost variants when APP_URL is localhost
+  if (!origin) return null;
+  const allowed = new Set(allowedAppOrigins().map((o) => o.toLowerCase()));
+  if (allowed.has(normalizeOrigin(origin).toLowerCase())) return origin;
   if (
     process.env.NODE_ENV !== "production" &&
     /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
@@ -87,21 +89,39 @@ function jwtSecret() {
   return secret;
 }
 
+function passOrRewrite(
+  request: NextRequest,
+  studentHost: boolean,
+  publicPath: string,
+  internalPath: string
+) {
+  if (studentHost && publicPath !== internalPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = internalPath;
+    return NextResponse.rewrite(url);
+  }
+  return NextResponse.next();
+}
+
 export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
+  const publicPath = request.nextUrl.pathname;
+  const host = request.headers.get("host") || "";
+  const studentHost = isStudentHost(host);
+  const rewritten = studentHost ? studentRewritePath(publicPath) : null;
+  const path = rewritten || publicPath;
 
   // PWA / static assets
   if (
-    path === "/manifest.webmanifest" ||
-    path === "/admin-manifest.webmanifest" ||
-    path === "/admin-sw.js" ||
-    path === "/app/sw.js" ||
-    path.startsWith("/icons/")
+    publicPath === "/manifest.webmanifest" ||
+    publicPath === "/admin-manifest.webmanifest" ||
+    publicPath === "/admin-sw.js" ||
+    publicPath === "/app/sw.js" ||
+    publicPath.startsWith("/icons/")
   ) {
     return NextResponse.next();
   }
 
-  if (path.startsWith("/api")) {
+  if (publicPath.startsWith("/api") || path.startsWith("/api")) {
     if (request.method === "OPTIONS") {
       return new NextResponse(null, {
         status: 204,
@@ -126,31 +146,45 @@ export async function middleware(request: NextRequest) {
   const isStudentApp = path === "/app" || path.startsWith("/app/");
   const isStudentPublic =
     path === "/app/login" || path === "/app/signup";
-  const isAdminLogin = path.startsWith("/login");
+  const isAdminLogin = path.startsWith("/login") && !studentHost;
 
-  // —— Student PWA (/app) ——
+  // —— Student surface ——
   if (isStudentApp) {
     if (!role && !isStudentPublic) {
       const url = request.nextUrl.clone();
-      url.pathname = "/app/login";
+      url.pathname = studentHost ? "/login" : "/app/login";
       return NextResponse.redirect(url);
     }
     if (role === "student" && isStudentPublic) {
       const url = request.nextUrl.clone();
-      url.pathname = "/app";
+      url.pathname = studentHost ? "/" : "/app";
       return NextResponse.redirect(url);
     }
     if (role === "admin" && !isStudentPublic) {
-      // Admins use the desk at /
+      const adminUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (studentHost && adminUrl) {
+        return NextResponse.redirect(new URL("/", adminUrl));
+      }
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
     }
-    return NextResponse.next();
+    return passOrRewrite(request, studentHost, publicPath, path);
+  }
+
+  // Student host hit something that isn't student app → home
+  if (studentHost) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
   }
 
   // —— Admin desk ——
   if (role === "student") {
+    const studentUrl = process.env.NEXT_PUBLIC_STUDENT_URL;
+    if (studentUrl) {
+      return NextResponse.redirect(new URL("/", studentUrl));
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/app";
     return NextResponse.redirect(url);

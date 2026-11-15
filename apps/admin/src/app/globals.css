@@ -1,14 +1,15 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&display=swap");
 
 :root {
   --orange: #fc8019;
   --orange-dark: #e96b0c;
   --orange-soft: #fff4ea;
-  --bg: #fafaf8;
+  --bg: #f3f6f2;
   --surface: #fff;
-  --ink: #1c1c1c;
-  --muted: #686868;
-  --line: #eaeaea;
+  --ink: #142018;
+  --muted: #5f6d64;
+  --line: #dce5dd;
   --green: #17834a;
   --danger: #d93a3a;
   --sidebar: #172019;
@@ -29,10 +30,144 @@ body {
   min-height: 100%;
   background: var(--bg);
   color: var(--ink);
-  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-family: "DM Sans", "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* —— Admin auth gate —— */
+.auth-admin {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+  background:
+    radial-gradient(900px 480px at 0% 0%, rgba(252, 128, 25, 0.18), transparent 55%),
+    linear-gradient(160deg, #101812 0%, #1a2a20 45%, #24362a 100%);
+  color: #f4f7f4;
+}
+
+@media (min-width: 900px) {
+  .auth-admin {
+    grid-template-columns: minmax(360px, 480px) 1fr;
+  }
+}
+
+.auth-admin-panel {
+  padding: calc(28px + var(--safe-top)) 22px calc(28px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.auth-admin-brand .auth-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f0b27a;
+}
+
+.auth-admin .auth-brand {
+  font-family: Syne, "Segoe UI", sans-serif;
+  font-size: clamp(2.5rem, 7vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 0 0 10px;
+  color: #fff;
+}
+
+.auth-admin .auth-tagline {
+  margin: 0;
+  color: #b7c5ba;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  max-width: 32ch;
+}
+
+.auth-admin-card {
+  background: rgba(255, 255, 255, 0.97);
+  color: var(--ink);
+  border-radius: 18px;
+  padding: 18px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.auth-admin-card .auth-form-title {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.auth-inline-link {
+  color: var(--orange-dark);
+  font-weight: 700;
+}
+
+.auth-install.admin {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: #e8efe9;
+}
+
+.auth-install.admin .muted {
+  color: #b7c5ba;
+}
+
+.auth-admin-visual {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (min-width: 900px) {
+  .auth-admin-visual {
+    display: grid;
+    place-items: end start;
+    padding: 48px;
+    background:
+      linear-gradient(135deg, rgba(252, 128, 25, 0.2), transparent 40%),
+      repeating-linear-gradient(
+        -18deg,
+        transparent,
+        transparent 18px,
+        rgba(255, 255, 255, 0.03) 18px,
+        rgba(255, 255, 255, 0.03) 19px
+      );
+  }
+}
+
+.auth-admin-visual-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.auth-admin-visual-inner span {
+  color: #f0b27a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.auth-admin-visual-inner strong {
+  font-family: Syne, "Segoe UI", sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
 }
 
 a {

@@ -13,6 +13,7 @@ export function AdminPwa() {
   );
   const [ios, setIos] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [showTip, setShowTip] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -35,21 +36,28 @@ export function AdminPwa() {
       setDeferred(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    const tipTimer = window.setTimeout(() => setShowTip(true), 1200);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.clearTimeout(tipTimer);
+    };
   }, []);
 
   if (hidden) return null;
 
   if (deferred) {
     return (
-      <div className="card" style={{ marginBottom: 12 }}>
-        <strong>Install Admin app</strong>
-        <p className="muted" style={{ marginBottom: 10 }}>
-          Add the kitchen desk to your home screen for quick access.
-        </p>
+      <div className="auth-install admin">
+        <div>
+          <strong>Install Admin app</strong>
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Kitchen desk on your home screen.
+          </p>
+        </div>
         <button
           className="btn"
           type="button"
+          style={{ width: "auto" }}
           onClick={async () => {
             await deferred.prompt();
             setDeferred(null);
@@ -64,11 +72,26 @@ export function AdminPwa() {
 
   if (ios) {
     return (
-      <div className="card" style={{ marginBottom: 12 }}>
-        <strong>Add to Home Screen</strong>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          Tap Share → Add to Home Screen to install Pratham Admin.
-        </p>
+      <div className="auth-install admin">
+        <div>
+          <strong>Add to Home Screen</strong>
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Tap Share → Add to Home Screen.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showTip) {
+    return (
+      <div className="auth-install admin">
+        <div>
+          <strong>Installable desk</strong>
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Browser menu → Install app / Add to Home Screen.
+          </p>
+        </div>
       </div>
     );
   }

@@ -35,48 +35,66 @@ export default function LoginPage() {
     }
   }
 
+  const studentUrl =
+    process.env.NEXT_PUBLIC_STUDENT_URL ||
+    (typeof window !== "undefined"
+      ? `${window.location.origin}/app`
+      : "/app");
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: 24,
-      }}
-    >
-      <div style={{ width: "min(420px, 100%)" }}>
-      <AdminPwa />
-      <form className="card" style={{ width: "100%" }} onSubmit={onSubmit}>
-        <h1 style={{ marginTop: 0 }}>Admin login</h1>
-        <p className="muted">
-          Installable kitchen desk · Students:{" "}
-          <a href="/app" style={{ color: "var(--orange-dark)", fontWeight: 700 }}>
-            /app
-          </a>
-        </p>
-        <label className="field">
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label className="field">
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-        <button className="btn" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+    <main className="auth-admin">
+      <div className="auth-admin-panel">
+        <div className="auth-admin-brand">
+          <p className="auth-eyebrow">Kitchen desk</p>
+          <h1 className="auth-brand">Pratham</h1>
+          <p className="auth-tagline">
+            Run orders, menu, and COD collections — installable on your phone.
+          </p>
+        </div>
+
+        <AdminPwa />
+
+        <form className="auth-admin-card" onSubmit={onSubmit}>
+          <h2 className="auth-form-title">Admin login</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Students order at{" "}
+            <a href={studentUrl} className="auth-inline-link">
+              the student app
+            </a>
+            .
+          </p>
+          <label className="field">
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="username"
+              placeholder="admin@gmail.com"
+            />
+          </label>
+          <label className="field">
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </label>
+          {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
+          <button className="btn" disabled={loading}>
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </div>
+      <div className="auth-admin-visual" aria-hidden>
+        <div className="auth-admin-visual-inner">
+          <span>Breakfast · Lunch · Dinner</span>
+          <strong>COD kitchen ops</strong>
+        </div>
       </div>
     </main>
   );

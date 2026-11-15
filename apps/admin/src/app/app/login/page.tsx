@@ -4,9 +4,12 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
+import { InstallHint } from "@/components/student/InstallHint";
+import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 export default function StudentLoginPage() {
   const router = useRouter();
+  const base = useStudentBase();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export default function StudentLoginPage() {
         setBusy(false);
         return;
       }
-      router.push("/app");
+      router.push(studentHref(base));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -36,38 +39,51 @@ export default function StudentLoginPage() {
   }
 
   return (
-    <form className="student-card" onSubmit={onSubmit}>
-      <h1 className="student-title">Pratham</h1>
-      <p className="student-muted">Student tiffin · cash on delivery</p>
-      <label className="student-field">
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
-      </label>
-      <label className="student-field">
-        Password
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-        />
-      </label>
-      {error && (
-        <p style={{ color: "var(--s-danger)", marginBottom: 12 }}>{error}</p>
-      )}
-      <button className="student-btn" disabled={busy} type="submit">
-        {busy ? "Signing in…" : "Sign in"}
-      </button>
-      <Link className="student-link" href="/app/signup">
-        New here? Create account
-      </Link>
-    </form>
+    <div className="auth-student">
+      <div className="auth-student-hero">
+        <p className="auth-eyebrow">Daily tiffin</p>
+        <h1 className="auth-brand">Pratham</h1>
+        <p className="auth-tagline">
+          Fresh meals to your hostel — cash on delivery, skip when you need to.
+        </p>
+      </div>
+
+      <InstallHint />
+
+      <form className="auth-student-card" onSubmit={onSubmit}>
+        <h2 className="auth-form-title">Welcome back</h2>
+        <p className="student-muted">Sign in to order breakfast, lunch, or dinner.</p>
+        <label className="student-field">
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            placeholder="you@college.edu"
+          />
+        </label>
+        <label className="student-field">
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+        </label>
+        {error && (
+          <p style={{ color: "var(--s-danger)", marginBottom: 12 }}>{error}</p>
+        )}
+        <button className="student-btn" disabled={busy} type="submit">
+          {busy ? "Signing in…" : "Sign in"}
+        </button>
+        <Link className="student-link" href={studentHref(base, "/signup")}>
+          New here? Create account
+        </Link>
+      </form>
+    </div>
   );
 }

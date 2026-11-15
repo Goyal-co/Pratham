@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/http";
+import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 type User = {
   full_name: string | null;
@@ -16,6 +17,7 @@ type User = {
 
 export default function StudentProfilePage() {
   const router = useRouter();
+  const base = useStudentBase();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export default function StudentProfilePage() {
 
   async function signOut() {
     await api("/api/auth/logout", { method: "POST" });
-    router.push("/app/login");
+    router.push(studentHref(base, "/login"));
     router.refresh();
   }
 
@@ -55,7 +57,10 @@ export default function StudentProfilePage() {
         </div>
       </div>
       <div className="student-card">
-        <Link href="/app/notifications" style={{ fontWeight: 700, color: "inherit" }}>
+        <Link
+          href={studentHref(base, "/notifications")}
+          style={{ fontWeight: 700, color: "inherit" }}
+        >
           Notifications →
         </Link>
       </div>

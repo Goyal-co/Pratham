@@ -4,35 +4,45 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { EnablePush } from "./EnablePush";
 import { InstallHint } from "./InstallHint";
-
-const tabs = [
-  { href: "/app", label: "Home", match: (p: string) => p === "/app" },
-  {
-    href: "/app/orders",
-    label: "Orders",
-    match: (p: string) => p.startsWith("/app/orders"),
-  },
-  {
-    href: "/app/plans",
-    label: "Plans",
-    match: (p: string) => p.startsWith("/app/plans"),
-  },
-  {
-    href: "/app/wallet",
-    label: "Wallet",
-    match: (p: string) => p.startsWith("/app/wallet"),
-  },
-  {
-    href: "/app/profile",
-    label: "Me",
-    match: (p: string) => p.startsWith("/app/profile") || p.startsWith("/app/notifications"),
-  },
-];
+import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 export function StudentChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const base = useStudentBase();
   const auth =
-    pathname === "/app/login" || pathname === "/app/signup";
+    pathname === "/app/login" ||
+    pathname === "/app/signup" ||
+    pathname === "/login" ||
+    pathname === "/signup";
+
+  const tabs = [
+    {
+      href: studentHref(base),
+      label: "Home",
+      match: (p: string) => p === "/app" || p === "/",
+    },
+    {
+      href: studentHref(base, "/orders"),
+      label: "Orders",
+      match: (p: string) => p.includes("/orders"),
+    },
+    {
+      href: studentHref(base, "/plans"),
+      label: "Plans",
+      match: (p: string) => p.includes("/plans"),
+    },
+    {
+      href: studentHref(base, "/wallet"),
+      label: "Wallet",
+      match: (p: string) => p.includes("/wallet"),
+    },
+    {
+      href: studentHref(base, "/profile"),
+      label: "Me",
+      match: (p: string) =>
+        p.includes("/profile") || p.includes("/notifications"),
+    },
+  ];
 
   if (auth) {
     return (

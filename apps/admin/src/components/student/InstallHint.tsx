@@ -13,6 +13,7 @@ export function InstallHint() {
   );
   const [hidden, setHidden] = useState(false);
   const [ios, setIos] = useState(false);
+  const [showTip, setShowTip] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent;
@@ -32,18 +33,27 @@ export function InstallHint() {
       setDeferred(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    const tipTimer = window.setTimeout(() => setShowTip(true), 1200);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.clearTimeout(tipTimer);
+    };
   }, []);
 
   if (hidden) return null;
 
   if (deferred) {
     return (
-      <div className="student-card">
-        <strong>Install Pratham</strong>
-        <p className="student-muted">Add to your home screen for quick orders.</p>
+      <div className="auth-install">
+        <div>
+          <strong>Install Pratham</strong>
+          <p className="student-muted" style={{ marginBottom: 0 }}>
+            Add to your home screen for one-tap orders.
+          </p>
+        </div>
         <button
           className="student-btn"
+          style={{ width: "auto", minWidth: 110 }}
           type="button"
           onClick={async () => {
             await deferred.prompt();
@@ -51,7 +61,7 @@ export function InstallHint() {
             setHidden(true);
           }}
         >
-          Install app
+          Install
         </button>
       </div>
     );
@@ -59,11 +69,26 @@ export function InstallHint() {
 
   if (ios) {
     return (
-      <div className="student-card">
-        <strong>Add to Home Screen</strong>
-        <p className="student-muted" style={{ marginBottom: 0 }}>
-          Tap Share → <em>Add to Home Screen</em> to install Pratham.
-        </p>
+      <div className="auth-install">
+        <div>
+          <strong>Add to Home Screen</strong>
+          <p className="student-muted" style={{ marginBottom: 0 }}>
+            Tap Share → <em>Add to Home Screen</em> to install.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showTip) {
+    return (
+      <div className="auth-install">
+        <div>
+          <strong>Installable app</strong>
+          <p className="student-muted" style={{ marginBottom: 0 }}>
+            Use your browser menu → <em>Install app</em> / Add to Home Screen.
+          </p>
+        </div>
       </div>
     );
   }

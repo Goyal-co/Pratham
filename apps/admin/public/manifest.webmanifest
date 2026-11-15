@@ -1,4 +1,5 @@
 {
+  "id": "/app",
   "name": "Pratham Tiffin",
   "short_name": "Pratham",
   "description": "Order tiffin · cash on delivery",
@@ -6,7 +7,7 @@
   "scope": "/app",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FAFAF8",
+  "background_color": "#F7F3EE",
   "theme_color": "#FC8019",
   "icons": [
     {

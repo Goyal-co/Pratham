@@ -137,13 +137,19 @@ One deploy: admin desk + student PWA (`/app`) + `/api/*`.
    | `CRON_SECRET` | Required — Vercel Cron sends `Authorization: Bearer $CRON_SECRET` |
    | `BOOTSTRAP_SECRET` | Seed/bootstrap secret |
    | `ALLOW_BOOTSTRAP` | `false` in production |
-   | `NEXT_PUBLIC_APP_URL` | Your Vercel URL, e.g. `https://pratham.vercel.app` |
+   | `NEXT_PUBLIC_APP_URL` | Admin origin, e.g. `https://admin.yourdomain.com` (or the Vercel URL) |
+   | `NEXT_PUBLIC_STUDENT_URL` | Optional student subdomain, e.g. `https://app.yourdomain.com` |
    | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web push public key |
    | `VAPID_PRIVATE_KEY` | Web push private key |
    | `VAPID_SUBJECT` | e.g. `mailto:admin@gmail.com` |
 
 5. Deploy. Students open `/app` (Add to Home Screen). Admin opens `/login`.
-6. Cron is declared in `vercel.json` — **5 runs/day** so it fits **Vercel Hobby**:
+6. **Optional subdomains** (same Vercel project, two domains → two installable PWAs):
+   - Add `admin.yourdomain.com` and `app.yourdomain.com` in Vercel → Domains
+   - Env: `NEXT_PUBLIC_APP_URL=https://admin.yourdomain.com`
+   - Env: `NEXT_PUBLIC_STUDENT_URL=https://app.yourdomain.com`
+   - Admin installs from the admin host; students from the app host (pretty URLs `/`, `/login`, `/signup`)
+7. Cron is declared in `vercel.json` — **5 runs/day** so it fits **Vercel Hobby**:
    - `generate-plans` at 05:45 / 10:45 / 16:45 IST (also sweeps closing reminders)
    - `reminders` at 06:00 IST (lunch open) and 20:00 IST (tomorrow menu / breakfast)
    For denser reminder timing, call `/api/cron/reminders` from an external cron or upgrade to Pro.
