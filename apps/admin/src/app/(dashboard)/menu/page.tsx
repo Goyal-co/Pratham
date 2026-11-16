@@ -3,6 +3,7 @@ import { getZonedParts } from "@pratham/shared";
 import { MenuForm } from "./MenuForm";
 import { PublishMenuButton } from "./PublishMenuButton";
 import { MenuItemActions, type MenuItemRow } from "./MenuItemActions";
+import { MenuGallery } from "./MenuGallery";
 import { asDateStr, getDaySpecificMenu } from "@/lib/menu";
 
 function addDays(dateStr: string, days: number) {
@@ -19,6 +20,7 @@ function toRow(item: Record<string, unknown>): MenuItemRow {
     description: (item.description as string | null) ?? null,
     price: item.price as number | string,
     menu_date: asDateStr(item.menu_date),
+    image_url: (item.image_url as string | null) ?? null,
   };
 }
 
@@ -117,6 +119,8 @@ export default async function MenuPage() {
         <h2 style={{ marginTop: 0 }}>Add dish</h2>
         <MenuForm defaultDate={tomorrow} />
       </div>
+
+      <MenuGallery />
 
       <DayTable title="Tomorrow" date={tomorrow} items={tomorrowItems} />
       <DayTable title="Today" date={today} items={todayItems} />

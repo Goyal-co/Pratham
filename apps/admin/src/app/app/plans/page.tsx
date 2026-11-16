@@ -10,6 +10,7 @@ import {
   type MenuItem,
 } from "@pratham/shared";
 import { api } from "@/lib/http";
+import { cachedStudentFetch, studentCacheInvalidate } from "@/lib/student-cache";
 
 type PlanRow = {
   id: string;
@@ -34,7 +35,6 @@ export default function StudentPlansPage() {
     lunch: [],
     dinner: [],
   });
-  /** Explicit pick per meal — "" means cleared / none. Missing key = none selected. */
   const [selected, setSelected] = useState<Partial<Record<MealType, string>>>({});
   const [qty, setQty] = useState<Partial<Record<MealType, number>>>({});
   const [cancelDate, setCancelDate] = useState(tomorrow);
@@ -49,11 +49,23 @@ export default function StudentPlansPage() {
   const [busyMeal, setBusyMeal] = useState<MealType | null>(null);
   const [skipBusy, setSkipBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     const day = addDaysYmd(getZonedParts().dateStr, 1);
+    if (force) {
+      studentCacheInvalidate("plans:");
+      studentCacheInvalidate("home:");
+    }
     const [planData, settings, tomorrowMenu] = await Promise.all([
-      api<{ plans: PlanRow[] }>("/api/plans"),
-      api<{ settings: Record<string, string> }>("/api/settings"),
+      cachedStudentFetch(
+        "plans:list",
+        () => api<{ plans: PlanRow[] }>("/api/plans"),
+        force ? 0 : 45_000
+      ),
+      cachedStudentFetch(
+        "plans:settings",
+        () => api<{ settings: Record<string, string> }>("/api/settings"),
+        force ? 0 : 60_000
+      ),
       api<{ items: MenuItem[] }>(`/api/menu?date=${day}`),
     ]);
 
@@ -67,7 +79,6 @@ export default function StudentPlansPage() {
     }
     setMenuByMeal(merged);
     setPlans(planData.plans ?? []);
-    // Do not auto-select combos — plan = three meal slots, user picks one combo each.
     setSelected({});
     setQty({});
 
@@ -85,6 +96,12 @@ export default function StudentPlansPage() {
     load().catch(() => setLoading(false));
   }, [load]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const skip = new URLSearchParams(window.location.search).get("skip");
+    if (skip && /^\d{4}-\d{2}-\d{2}$/.test(skip)) setCancelDate(skip);
+  }, []);
+
   const planMap = useMemo(() => {
     const m = {} as Partial<Record<MealType, PlanRow>>;
     for (const p of plans) m[p.meal_type] = p;
@@ -93,16 +110,14 @@ export default function StudentPlansPage() {
 
   function toggleCombo(meal: MealType, itemId: string) {
     setSelected((s) => {
-      if (s[meal] === itemId) {
-        return { ...s, [meal]: "" };
-      }
+      if (s[meal] === itemId) return { ...s, [meal]: "" };
       return { ...s, [meal]: itemId };
     });
   }
 
-  async function confirmOrder(meal: MealType) {
-    const menuItemId = selected[meal];
-    if (!menuItemId) {
+  async function savePlan(meal: MealType, placeOrder: boolean) {
+    const menuItemId = selected[meal] || planMap[meal]?.menu_item_id || null;
+    if (placeOrder && !menuItemId) {
       setMsg(`Pick one ${MEAL_LABELS[meal]} combo, then confirm.`);
       return;
     }
@@ -112,27 +127,41 @@ export default function StudentPlansPage() {
       const data = await api<{
         ordered: boolean;
         order_date: string;
+        order_error?: string | null;
         quantity?: number;
-        item?: { name: string; price: number };
+        item?: { name: string; price: number } | null;
       }>("/api/plans", {
         method: "POST",
         json: {
           meal_type: meal,
           menu_item_id: menuItemId,
           quantity: plates,
-          place_order: true,
+          place_order: placeOrder,
           order_date: tomorrow,
         },
       });
-      const n = data.quantity || plates;
-      setMsg(
-        `Confirmed ${MEAL_LABELS[meal]}: ${data.item?.name || "combo"} ×${n} for ${data.order_date} · charged to wallet`
-      );
+      if (placeOrder && data.ordered) {
+        const n = data.quantity || plates;
+        setMsg(
+          `Ordered ${MEAL_LABELS[meal]}: ${data.item?.name || "combo"} ×${n} for ${data.order_date} · charged to wallet`
+        );
+      } else if (placeOrder && data.order_error) {
+        setMsg(
+          `${MEAL_LABELS[meal]} added to your plan, but order failed: ${data.order_error}`
+        );
+      } else {
+        setMsg(
+          `${MEAL_LABELS[meal]} is on your meal plan${
+            data.item?.name ? ` · preferred ${data.item.name}` : ""
+          }`
+        );
+      }
       setSelected((s) => ({ ...s, [meal]: "" }));
       setQty((q) => ({ ...q, [meal]: 1 }));
-      await load();
+      await load(true);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Failed");
+      await load(true).catch(() => undefined);
     } finally {
       setBusyMeal(null);
     }
@@ -153,7 +182,7 @@ export default function StudentPlansPage() {
         }`
       );
       setSelected((s) => ({ ...s, [meal]: "" }));
-      await load();
+      await load(true);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -166,27 +195,41 @@ export default function StudentPlansPage() {
       (m) => skipMeals[m] && planMap[m]
     );
     if (!meal_types.length) {
-      setMsg("Select at least one active plan meal to skip.");
+      setMsg("Turn on a meal plan above, then choose meals to skip.");
       return;
     }
     setSkipBusy(true);
     try {
-      const data = await api<{ refunded_orders?: number }>(
-        "/api/plans/cancel-day",
-        {
-          method: "POST",
-          json: { meal_types, cancel_date: cancelDate },
-        }
-      );
+      const data = await api<{
+        cancelled?: string[];
+        skipped?: string[];
+        refunded_orders?: number;
+      }>("/api/plans/cancel-day", {
+        method: "POST",
+        json: { meal_types, cancel_date: cancelDate },
+      });
+      const done = data.cancelled?.length
+        ? data.cancelled.join(", ")
+        : meal_types.join(", ");
+      const partial = data.skipped?.length
+        ? ` · skipped: ${data.skipped.join("; ")}`
+        : "";
       setMsg(
-        `Skipped ${meal_types.join(", ")} for ${cancelDate}${
+        `Skipped ${done} for ${cancelDate}${
           data.refunded_orders
             ? ` · ${data.refunded_orders} order(s) refunded`
             : ""
-        }`
+        }${partial}`
       );
-      setSkipMeals({ breakfast: false, lunch: false, dinner: false });
-      await load();
+      setSkipMeals((s) => {
+        const next = { ...s };
+        for (const m of data.cancelled || []) {
+          next[m as MealType] = false;
+        }
+        return next;
+      });
+      studentCacheInvalidate("home:");
+      await load(true);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -197,8 +240,7 @@ export default function StudentPlansPage() {
   if (loading) {
     return (
       <div>
-        <p className="student-kicker">Ahariva</p>
-        <h1 className="student-title">Plans</h1>
+        <h1 className="v2-page-title">Build your meal plan</h1>
         <div className="student-skeleton" style={{ width: "60%" }} />
       </div>
     );
@@ -206,13 +248,11 @@ export default function StudentPlansPage() {
 
   return (
     <div>
-      <p className="student-kicker">Ahariva</p>
-      <h1 className="student-title">Plans</h1>
-      <p className="student-muted">
-        Plan covers breakfast, lunch & dinner as three meal times. For tomorrow (
-        {tomorrow}), pick <strong>one combo</strong> per meal, set plates
-        (extras allowed), then confirm — that places the order. Tap again to
-        unselect.
+      <h1 className="v2-page-title">Build your meal plan</h1>
+      <p className="v2-page-sub">
+        Turn on breakfast, lunch, or dinner for everyday delivery. Then skip any
+        date you don&apos;t need — or confirm tomorrow&apos;s combo when the
+        kitchen publishes it.
       </p>
       <p className="student-muted">
         Cutoffs (IST): B {cutoffs.breakfast} · L {cutoffs.lunch} · D{" "}
@@ -226,20 +266,19 @@ export default function StudentPlansPage() {
         const choice = selected[meal] || "";
         const plates = qty[meal] || 1;
         const unit = options.find((i) => i.id === choice);
-        const total =
-          unit != null ? Number(unit.price) * plates : null;
+        const total = unit != null ? Number(unit.price) * plates : null;
         return (
           <section className="student-panel" key={meal}>
             <div className="student-panel-head">
               <h2>{MEAL_LABELS[meal]}</h2>
               <span className={`student-badge ${plan ? "ok" : "muted"}`}>
-                {plan ? "Plan on" : "No plan"}
+                {plan ? "Plan on" : "Off"}
               </span>
             </div>
             <div className="student-panel-body">
               {plan?.menu_item_name && (
                 <p className="student-panel-note">
-                  Last confirmed: <strong>{plan.menu_item_name}</strong>
+                  Preferred: <strong>{plan.menu_item_name}</strong>
                   {plan.menu_item_price != null
                     ? ` · ${formatInr(Number(plan.menu_item_price))}`
                     : ""}
@@ -247,8 +286,8 @@ export default function StudentPlansPage() {
               )}
               {!options.length && (
                 <p className="student-empty">
-                  No combos for tomorrow yet. Kitchen adds tomorrow’s menu the
-                  day before.
+                  No {MEAL_LABELS[meal].toLowerCase()} dishes for tomorrow yet.
+                  You can still add this meal to your plan and skip dates.
                 </p>
               )}
               <div className="student-combo-list">
@@ -349,12 +388,24 @@ export default function StudentPlansPage() {
                 <button
                   className="student-btn"
                   type="button"
+                  disabled={!!busyMeal}
+                  onClick={() => savePlan(meal, false)}
+                >
+                  {busyMeal === meal
+                    ? "Saving…"
+                    : plan
+                      ? `Update ${MEAL_LABELS[meal]} plan`
+                      : `Add ${MEAL_LABELS[meal]} to my plan`}
+                </button>
+                <button
+                  className="student-btn secondary"
+                  type="button"
                   disabled={!!busyMeal || !choice}
-                  onClick={() => confirmOrder(meal)}
+                  onClick={() => savePlan(meal, true)}
                 >
                   {busyMeal === meal
                     ? "Ordering…"
-                    : `Confirm · ${plates} plate${plates > 1 ? "s" : ""} for ${tomorrow}`}
+                    : `Confirm & order · ${plates} plate${plates > 1 ? "s" : ""} for ${tomorrow}`}
                 </button>
                 {plan && (
                   <button
@@ -378,7 +429,8 @@ export default function StudentPlansPage() {
         </div>
         <div className="student-panel-body">
           <p className="student-panel-note">
-            Opt in per meal (nothing selected by default).
+            Pick a date and the plan meals you want to skip. Add meals to your
+            plan above first.
           </p>
           <label className="student-field">
             Date
@@ -407,7 +459,7 @@ export default function StudentPlansPage() {
                 />
                 <span>
                   Skip {MEAL_LABELS[meal]}
-                  {!hasPlan ? " (no plan)" : ""}
+                  {!hasPlan ? " (add to plan first)" : ""}
                 </span>
               </label>
             );

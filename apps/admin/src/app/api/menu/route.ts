@@ -45,15 +45,21 @@ export async function POST(req: NextRequest) {
       ? null
       : String(body.menu_date);
 
+  const imageUrl =
+    body.image_url === "" || body.image_url == null
+      ? null
+      : String(body.image_url);
+
   const { rows } = await query(
-    `insert into menu_items (meal_type, name, description, price, is_active, menu_date)
-     values ($1,$2,$3,$4,true,$5::date) returning *`,
+    `insert into menu_items (meal_type, name, description, price, is_active, menu_date, image_url)
+     values ($1,$2,$3,$4,true,$5::date,$6) returning *`,
     [
       body.meal_type,
       body.name,
       body.description || null,
       Number(body.price),
       menuDate,
+      imageUrl,
     ]
   );
   const item = rows[0];

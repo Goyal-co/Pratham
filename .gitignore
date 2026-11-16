@@ -25,3 +25,5 @@ apps/student/ios/
 apps/student/dist-web-check/
 apps/student/dist/
 supabase/.temp/
+apps/admin/public/uploads/**
+!apps/admin/public/uploads/**/.gitkeep

@@ -1,29 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { StudentChrome } from "@/components/student/StudentChrome";
 import "./student.css";
 
-const outfit = Outfit({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-jakarta",
   display: "swap",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["600", "700"],
-  display: "swap",
+  weight: ["400", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Ahariva",
-  description: "Breakfast, lunch & dinner · cash on delivery",
-  applicationName: "Ahariva",
+  title: "AHARIVA",
+  description: "Homemade meals for student life",
+  applicationName: "AHARIVA",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Ahariva",
+    title: "AHARIVA",
     statusBarStyle: "default",
   },
   icons: {
@@ -46,7 +40,7 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`${outfit.variable} ${fraunces.variable} ${outfit.className}`}>
+    <div className={`${jakarta.variable} ${jakarta.className}`}>
       <StudentChrome>{children}</StudentChrome>
     </div>
   );

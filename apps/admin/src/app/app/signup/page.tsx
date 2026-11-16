@@ -5,7 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
 import { InstallHint } from "@/components/student/InstallHint";
-import { RotatingBrand } from "@/components/RotatingBrand";
+import { AharivaLogo } from "@/components/student/AharivaLogo";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 export default function StudentSignupPage() {
@@ -52,7 +52,7 @@ export default function StudentSignupPage() {
     <div className="auth-student">
       <div className="auth-student-hero">
         <p className="auth-eyebrow">Breakfast · Lunch · Dinner</p>
-        <RotatingBrand className="auth-brand" />
+        <AharivaLogo variant="full" height={56} className="auth-brand-logo" />
         <p className="auth-tagline">
           Create your account, set hostel details, and start ordering COD
           breakfast, lunch & dinner.

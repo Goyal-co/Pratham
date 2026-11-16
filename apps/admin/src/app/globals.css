@@ -808,3 +808,34 @@ a.card.stat:hover {
     width: 100%;
   }
 }
+
+/* Menu image gallery */
+.image-picker { display: grid; gap: 10px; margin-top: 6px; }
+.image-picker-preview {
+  width: 120px; height: 90px; border-radius: 10px; border: 1px solid #e5e7eb;
+  background: #f8faf8; overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+.image-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-modal {
+  position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.gallery-modal-panel {
+  background: #fff; border-radius: 14px; padding: 16px; width: min(720px, 100%);
+  max-height: 80vh; overflow: auto; box-shadow: 0 20px 50px rgba(0,0,0,.2);
+}
+.gallery-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; margin-top: 12px;
+}
+.gallery-tile {
+  position: relative; aspect-ratio: 1; border: 2px solid transparent; border-radius: 10px;
+  overflow: hidden; padding: 0; background: #f3f4f3; cursor: pointer;
+}
+.gallery-tile.active { border-color: #fc8019; }
+.gallery-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-tile.static { cursor: default; }
+.gallery-delete {
+  position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border: none;
+  border-radius: 999px; background: rgba(0,0,0,.65); color: #fff; font-size: 16px; cursor: pointer;
+  line-height: 1;
+}

@@ -5,9 +5,9 @@ import { formatInr, type Order } from "@pratham/shared";
 import { api } from "@/lib/http";
 
 const STATUS_LABEL: Record<string, string> = {
-  placed: "Received",
-  preparing: "Packing",
-  out_for_delivery: "Out for delivery",
+  placed: "Confirmed",
+  preparing: "Preparing",
+  out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
   cancelled: "Cancelled",
 };
@@ -29,8 +29,7 @@ export default function StudentOrdersPage() {
   if (loading) {
     return (
       <div>
-        <p className="student-kicker">Ahariva</p>
-        <h1 className="student-title">Orders</h1>
+        <h1 className="v2-page-title">My Orders</h1>
         <div className="student-skeleton" style={{ width: "70%" }} />
         <div className="student-skeleton" style={{ height: 72 }} />
       </div>
@@ -39,12 +38,8 @@ export default function StudentOrdersPage() {
 
   return (
     <div>
-      <p className="student-kicker">Ahariva</p>
-      <p className="student-kicker">Ahariva</p>
-      <h1 className="student-title">Orders</h1>
-      <p className="student-muted">
-        Recent meals · full calendar & filters are under Profile
-      </p>
+      <h1 className="v2-page-title">My Orders</h1>
+      <p className="v2-page-sub">Upcoming and past meal orders</p>
       {!orders.length && <p className="student-empty">No orders yet.</p>}
       {orders.map((o) => (
         <div key={o.id} className="student-card">

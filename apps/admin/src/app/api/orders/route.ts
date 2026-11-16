@@ -25,7 +25,12 @@ export async function GET(req: NextRequest) {
   }
 
   const { rows } = await query(
-    `select * from orders where student_id = $1 order by created_at desc limit 50`,
+    `select o.*, mi.name as item_name, mi.name as menu_item_name
+     from orders o
+     left join menu_items mi on mi.id = o.menu_item_id
+     where o.student_id = $1
+     order by o.created_at desc
+     limit 50`,
     [user.id]
   );
   return json({ orders: rows });

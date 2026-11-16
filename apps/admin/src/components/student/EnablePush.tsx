@@ -12,6 +12,20 @@ function urlBase64ToUint8Array(base64String: string) {
   return out;
 }
 
+function whenIdle(cb: () => void) {
+  if (typeof window === "undefined") return () => undefined;
+  const w = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    cancelIdleCallback?: (id: number) => void;
+  };
+  if (typeof w.requestIdleCallback === "function") {
+    const id = w.requestIdleCallback(() => cb(), { timeout: 4000 });
+    return () => w.cancelIdleCallback?.(id);
+  }
+  const t = globalThis.setTimeout(cb, 1800);
+  return () => globalThis.clearTimeout(t);
+}
+
 async function ensureSubscription() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!publicKey) throw new Error("Push is not configured (missing VAPID public key).");
@@ -49,23 +63,25 @@ export function EnablePush() {
     }
 
     let cancelled = false;
-
-    (async () => {
-      try {
-        await navigator.serviceWorker.register("/app/sw.js", { scope: "/app" });
-        if (Notification.permission === "granted") {
-          await ensureSubscription();
-          if (!cancelled) setStatus("on");
-          return;
+    const cancelIdle = whenIdle(() => {
+      void (async () => {
+        try {
+          await navigator.serviceWorker.register("/app/sw.js", { scope: "/app" });
+          if (Notification.permission === "granted") {
+            await ensureSubscription();
+            if (!cancelled) setStatus("on");
+            return;
+          }
+          if (!cancelled) setStatus("off");
+        } catch {
+          if (!cancelled) setStatus("unsupported");
         }
-        if (!cancelled) setStatus("off");
-      } catch {
-        if (!cancelled) setStatus("unsupported");
-      }
-    })();
+      })();
+    });
 
     return () => {
       cancelled = true;
+      cancelIdle();
     };
   }, []);
 

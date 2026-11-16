@@ -79,6 +79,7 @@ if (action === "up") {
     "db/migrations/004_password_reset.sql",
     "db/migrations/005_credit_hold_until_delivered.sql",
     "db/migrations/006_wallet_primary_balance.sql",
+    "db/migrations/007_perf_indexes_and_media.sql",
   ];
   const client = pgClient();
   await client.connect();

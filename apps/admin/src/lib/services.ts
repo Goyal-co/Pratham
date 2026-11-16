@@ -49,7 +49,7 @@ export async function notifyUser(
     `insert into notifications (user_id, title, body, data) values ($1,$2,$3,$4)`,
     [userId, title, body, data ? JSON.stringify(data) : null]
   );
-  await sendExpoPush([userId], title, body, data).catch(() => undefined);
+  void sendExpoPush([userId], title, body, data).catch(() => undefined);
 }
 
 export async function notifyAllStudents(
@@ -215,8 +215,8 @@ export async function placeOrder(input: {
     );
 
     return order;
-  }).then(async (order) => {
-    await sendExpoPush(
+  }).then((order) => {
+    void sendExpoPush(
       [input.studentId],
       "Order placed",
       `${input.mealType} x${input.quantity} · charged to wallet`,

@@ -3,7 +3,7 @@ import { query } from "@pratham/db";
 import { getUserFromRequest } from "@/lib/auth";
 import { error, json } from "@/lib/api";
 import { writeAudit } from "@/lib/audit";
-import { invalidateSettingsCache } from "@/lib/services";
+import { getSettings, invalidateSettingsCache } from "@/lib/services";
 
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -17,8 +17,8 @@ function normalizeCutoff(value: unknown): string | null {
 }
 
 export async function GET() {
-  const { rows } = await query(`select * from app_settings where id = 1`);
-  return json({ settings: rows[0] });
+  const settings = await getSettings();
+  return json({ settings });
 }
 
 export async function PATCH(req: NextRequest) {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/http";
-import { RotatingBrand } from "@/components/RotatingBrand";
+import { AharivaLogo } from "@/components/student/AharivaLogo";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 function ResetForm() {
@@ -94,7 +94,7 @@ export default function StudentResetPasswordPage() {
     <div className="auth-student">
       <div className="auth-student-hero">
         <p className="auth-eyebrow">Breakfast · Lunch · Dinner</p>
-        <RotatingBrand className="auth-brand" />
+        <AharivaLogo variant="full" height={56} className="auth-brand-logo" />
       </div>
       <Suspense fallback={<div className="auth-student-card">Loading…</div>}>
         <ResetForm />

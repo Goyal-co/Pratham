@@ -42,8 +42,11 @@ export async function POST(req: NextRequest) {
   if (!user || user.role !== "student") return error("Students only", 403);
   const body = await req.json();
   const mealType = body.meal_type as MealType;
-  const menuItemId = body.menu_item_id as string | null | undefined;
-  const placeNow = body.place_order !== false; // default: confirm = order
+  const rawMenuItemId = body.menu_item_id as string | null | undefined;
+  const menuItemId =
+    rawMenuItemId === "" || rawMenuItemId == null ? null : String(rawMenuItemId);
+  // Default: save plan only. Explicit place_order:true also places tomorrow/today order.
+  const placeNow = body.place_order === true;
   const quantity = Math.max(1, Math.min(10, Number(body.quantity || 1)));
   const settings = await getSettings();
   const { dateStr } = getZonedParts(new Date(), settings.timezone);
@@ -53,17 +56,23 @@ export async function POST(req: NextRequest) {
   if (!mealType || !["breakfast", "lunch", "dinner"].includes(mealType)) {
     return error("meal_type required");
   }
-  if (!menuItemId) {
-    return error("Select a combo for this meal");
+  if (placeNow && !menuItemId) {
+    return error("Select a combo to place an order");
   }
 
-  const item = await query(
-    `select * from menu_items where id = $1 and is_active`,
-    [menuItemId]
-  );
-  if (!item.rows[0]) return error("Menu item not found");
-  if (item.rows[0].meal_type !== mealType) {
-    return error("Selected dish does not match this meal");
+  let itemName: string | null = null;
+  let itemPrice: number | null = null;
+  if (menuItemId) {
+    const item = await query(
+      `select * from menu_items where id = $1 and is_active`,
+      [menuItemId]
+    );
+    if (!item.rows[0]) return error("Menu item not found");
+    if (item.rows[0].meal_type !== mealType) {
+      return error("Selected dish does not match this meal");
+    }
+    itemName = item.rows[0].name;
+    itemPrice = Number(item.rows[0].price);
   }
 
   await query(
@@ -79,32 +88,57 @@ export async function POST(req: NextRequest) {
 
   let ordered = false;
   let orderId: string | null = null;
+  let orderError: string | null = null;
 
-  if (placeNow) {
+  if (placeNow && menuItemId) {
     const cutoffs = {
       breakfast: settings.breakfast_cutoff,
       lunch: settings.lunch_cutoff,
       dinner: settings.dinner_cutoff,
     };
     if (orderDate < dateStr) {
-      return error("Cannot order for a past date");
+      return json(
+        {
+          plan: rows[0],
+          ordered: false,
+          order_error: "Cannot order for a past date",
+          order_date: orderDate,
+          quantity,
+          item: itemName
+            ? { id: menuItemId, name: itemName, price: itemPrice }
+            : null,
+        },
+        200
+      );
     }
     if (
       orderDate === dateStr &&
       !isMealOpen(mealType, cutoffs, new Date(), settings.timezone)
     ) {
-      return error(`${mealType} ordering is closed for today`);
+      return json(
+        {
+          plan: rows[0],
+          ordered: false,
+          order_error: `${mealType} ordering is closed for today`,
+          order_date: orderDate,
+          quantity,
+          item: itemName
+            ? { id: menuItemId, name: itemName, price: itemPrice }
+            : null,
+        },
+        200
+      );
     }
 
-    // Replace any open plan order for that date
-    await cancelOpenOrdersForMealDate({
-      studentId: user.id,
-      mealType,
-      orderDate,
-      source: "any",
-    });
-
     try {
+      // Only cancel an existing open order once the replacement can succeed.
+      // placeOrder itself does not replace — cancel then place inside try.
+      await cancelOpenOrdersForMealDate({
+        studentId: user.id,
+        mealType,
+        orderDate,
+        source: "any",
+      });
       const order = await placeOrder({
         studentId: user.id,
         mealType,
@@ -116,26 +150,24 @@ export async function POST(req: NextRequest) {
       ordered = true;
       orderId = order.id;
     } catch (e) {
+      orderError = e instanceof Error ? e.message : "Could not place order";
       await notifyUser(
         user.id,
         "Plan saved — order failed",
-        e instanceof Error ? e.message : "Could not place order",
+        orderError,
         { type: "plan_order_failed", meal_type: mealType }
-      );
-      return error(
-        e instanceof Error
-          ? `Plan saved but order failed: ${e.message}`
-          : "Plan saved but order failed"
       );
     }
   }
 
   await notifyUser(
     user.id,
-    ordered ? "Combo confirmed · ordered" : "Plan combo saved",
+    ordered ? "Combo confirmed · ordered" : "Meal plan updated",
     ordered
-      ? `${mealType}: ${item.rows[0].name} ×${quantity} ordered for ${orderDate}`
-      : `Everyday ${mealType}: ${item.rows[0].name}`,
+      ? `${mealType}: ${itemName || "combo"} ×${quantity} ordered for ${orderDate}`
+      : orderError
+        ? `Everyday ${mealType} saved · order failed: ${orderError}`
+        : `Everyday ${mealType}${itemName ? `: ${itemName}` : ""} is on your plan`,
     {
       type: "plan_activated",
       plan_id: rows[0].id,
@@ -149,13 +181,12 @@ export async function POST(req: NextRequest) {
     plan: rows[0],
     ordered,
     order_id: orderId,
+    order_error: orderError,
     order_date: orderDate,
     quantity,
-    item: {
-      id: item.rows[0].id,
-      name: item.rows[0].name,
-      price: item.rows[0].price,
-    },
+    item: itemName
+      ? { id: menuItemId, name: itemName, price: itemPrice }
+      : null,
   });
 }
 

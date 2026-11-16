@@ -8,46 +8,68 @@ import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 function IconHome() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z" />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-function IconOrders() {
+function IconMenu() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M7 4h10l1 4H6l1-4z" />
-      <path d="M6 8h12l-1 12H7L6 8z" />
-      <path d="M9 12h6" />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 7h12l1 3H5l1-3z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10h12l-1 10H7L6 10z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-function IconPlans() {
+function IconMeals() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="4" y="5" width="16" height="15" rx="2" />
-      <path d="M8 3v4M16 3v4M4 10h16" />
-    </svg>
-  );
-}
-
-function IconWallet() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="6" width="18" height="13" rx="2" />
-      <path d="M3 10h18" />
-      <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none" />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="15"
+        rx="2.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M8 3.5v3.5M16 3.5v3.5M4 10h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function IconMe() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 19.5c1.8-3.2 4.2-4.5 7-4.5s5.2 1.3 7 4.5" />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M5 19c1.7-3 4-4.3 7-4.3S17.3 16 19 19"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -71,29 +93,26 @@ export function StudentChrome({ children }: { children: React.ReactNode }) {
       match: (p: string) => p === "/app" || p === "/",
     },
     {
-      href: studentHref(base, "/orders"),
-      label: "Orders",
-      icon: <IconOrders />,
-      match: (p: string) => p.includes("/orders"),
+      href: studentHref(base, "/menu"),
+      label: "Menu",
+      icon: <IconMenu />,
+      match: (p: string) => p.includes("/menu"),
     },
     {
-      href: studentHref(base, "/plans"),
-      label: "Plans",
-      icon: <IconPlans />,
-      match: (p: string) => p.includes("/plans"),
-    },
-    {
-      href: studentHref(base, "/wallet"),
-      label: "Wallet",
-      icon: <IconWallet />,
-      match: (p: string) => p.includes("/wallet"),
+      href: studentHref(base, "/meals"),
+      label: "My Meals",
+      icon: <IconMeals />,
+      match: (p: string) =>
+        p.includes("/meals") || p.includes("/plans") || p.includes("/orders"),
     },
     {
       href: studentHref(base, "/profile"),
-      label: "Me",
+      label: "Profile",
       icon: <IconMe />,
       match: (p: string) =>
-        p.includes("/profile") || p.includes("/notifications"),
+        p.includes("/profile") ||
+        p.includes("/notifications") ||
+        p.includes("/wallet"),
     },
   ];
 

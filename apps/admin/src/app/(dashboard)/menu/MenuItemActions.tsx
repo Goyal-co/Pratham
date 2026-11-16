@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatInr } from "@pratham/shared";
 import { api } from "@/lib/http";
+import { ImagePicker } from "@/components/menu/ImagePicker";
 
 export type MenuItemRow = {
   id: string;
@@ -12,6 +13,7 @@ export type MenuItemRow = {
   description: string | null;
   price: number | string;
   menu_date: string | null;
+  image_url?: string | null;
 };
 
 export function MenuItemActions({ item }: { item: MenuItemRow }) {
@@ -23,6 +25,7 @@ export function MenuItemActions({ item }: { item: MenuItemRow }) {
   const [description, setDescription] = useState(item.description || "");
   const [price, setPrice] = useState(String(item.price));
   const [menuDate, setMenuDate] = useState(item.menu_date || "");
+  const [imageUrl, setImageUrl] = useState<string | null>(item.image_url || null);
 
   async function onSave(e: FormEvent) {
     e.preventDefault();
@@ -36,6 +39,7 @@ export function MenuItemActions({ item }: { item: MenuItemRow }) {
           description,
           price: Number(price),
           menu_date: menuDate || null,
+          image_url: imageUrl,
         },
       });
       setEditing(false);
@@ -63,7 +67,7 @@ export function MenuItemActions({ item }: { item: MenuItemRow }) {
   if (editing) {
     return (
       <tr>
-        <td colSpan={4}>
+        <td colSpan={5}>
           <form onSubmit={onSave} className="menu-edit-form">
             <div className="row">
               <label className="field">
@@ -111,6 +115,10 @@ export function MenuItemActions({ item }: { item: MenuItemRow }) {
                 />
               </label>
             </div>
+            <div className="field" style={{ marginTop: 8 }}>
+              <span>Dish image</span>
+              <ImagePicker value={imageUrl} onChange={setImageUrl} />
+            </div>
             <div className="row" style={{ marginTop: 4 }}>
               <button className="btn" disabled={busy} type="submit">
                 {busy ? "Saving…" : "Save"}
@@ -125,6 +133,7 @@ export function MenuItemActions({ item }: { item: MenuItemRow }) {
                   setDescription(item.description || "");
                   setPrice(String(item.price));
                   setMenuDate(item.menu_date || "");
+                  setImageUrl(item.image_url || null);
                   setEditing(false);
                 }}
               >
@@ -141,8 +150,27 @@ export function MenuItemActions({ item }: { item: MenuItemRow }) {
     <tr>
       <td style={{ textTransform: "capitalize" }}>{item.meal_type}</td>
       <td>
-        <div>{item.name}</div>
-        {item.description ? <div className="muted">{item.description}</div> : null}
+        <div className="row" style={{ gap: 10, alignItems: "center" }}>
+          {item.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.image_url}
+              alt=""
+              style={{
+                width: 44,
+                height: 44,
+                objectFit: "cover",
+                borderRadius: 8,
+              }}
+            />
+          ) : null}
+          <div>
+            <div>{item.name}</div>
+            {item.description ? (
+              <div className="muted">{item.description}</div>
+            ) : null}
+          </div>
+        </div>
       </td>
       <td>{formatInr(Number(item.price))}</td>
       <td>

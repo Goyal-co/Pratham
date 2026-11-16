@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
+import { ImagePicker } from "@/components/menu/ImagePicker";
 
 export function MenuForm({ defaultDate }: { defaultDate?: string }) {
   const router = useRouter();
@@ -12,6 +13,7 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
   const [price, setPrice] = useState("80");
   const [menuDate, setMenuDate] = useState(defaultDate || "");
   const [asCatalog, setAsCatalog] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
@@ -26,10 +28,12 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
           description,
           price: Number(price),
           menu_date: asCatalog ? null : menuDate || defaultDate || null,
+          image_url: imageUrl,
         },
       });
       setName("");
       setDescription("");
+      setImageUrl(null);
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed");
@@ -71,6 +75,10 @@ export function MenuForm({ defaultDate }: { defaultDate?: string }) {
         />
         <span style={{ fontWeight: 500 }}>Save as catalog default (no date)</span>
       </label>
+      <div className="field">
+        <span>Dish image</span>
+        <ImagePicker value={imageUrl} onChange={setImageUrl} />
+      </div>
       <div className="row">
         <label className="field">
           Name

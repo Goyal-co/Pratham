@@ -27,6 +27,12 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         : String(body.menu_date);
   const isActive =
     body.is_active === undefined ? undefined : Boolean(body.is_active);
+  const imageUrl =
+    body.image_url === undefined
+      ? undefined
+      : body.image_url === "" || body.image_url == null
+        ? null
+        : String(body.image_url);
 
   if (name !== undefined && !String(name).trim()) {
     return error("name cannot be empty");
@@ -48,7 +54,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
        description = case when $4::boolean then $5 else description end,
        price = coalesce($6, price),
        menu_date = case when $7::boolean then $8::date else menu_date end,
-       is_active = coalesce($9, is_active)
+       is_active = coalesce($9, is_active),
+       image_url = case when $10::boolean then $11 else image_url end
      where id = $1
      returning *`,
     [
@@ -61,6 +68,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       menuDate !== undefined,
       menuDate ?? null,
       isActive ?? null,
+      imageUrl !== undefined,
+      imageUrl ?? null,
     ]
   );
 
