@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/http";
+import { registerStudentSw } from "@/lib/student-sw";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -30,9 +31,7 @@ async function ensureSubscription() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!publicKey) throw new Error("Push is not configured (missing VAPID public key).");
 
-  const reg = await navigator.serviceWorker.register("/app/sw.js", {
-    scope: "/app",
-  });
+  const reg = await registerStudentSw();
   await navigator.serviceWorker.ready;
 
   let sub = await reg.pushManager.getSubscription();
@@ -66,7 +65,7 @@ export function EnablePush() {
     const cancelIdle = whenIdle(() => {
       void (async () => {
         try {
-          await navigator.serviceWorker.register("/app/sw.js", { scope: "/app" });
+          await registerStudentSw();
           if (Notification.permission === "granted") {
             await ensureSubscription();
             if (!cancelled) setStatus("on");

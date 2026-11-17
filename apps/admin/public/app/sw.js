@@ -1,11 +1,20 @@
-/* Student PWA — scoped to /app */
+/* Ahariva student PWA — /app scope (localhost + shared host) */
+const CACHE = "ahariva-student-v2";
+const OFFLINE = ["/app", "/app/login"];
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open("pratham-student-v1").then((c) => c.addAll(["/app"])));
+  event.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(OFFLINE).catch(() => undefined))
+  );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener("fetch", (event) => {

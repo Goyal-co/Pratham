@@ -116,6 +116,7 @@ export async function middleware(request: NextRequest) {
     publicPath === "/admin-manifest.webmanifest" ||
     publicPath === "/admin-sw.js" ||
     publicPath === "/app/sw.js" ||
+    publicPath === "/sw.js" ||
     publicPath.startsWith("/icons/")
   ) {
     return NextResponse.next();

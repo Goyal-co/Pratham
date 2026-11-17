@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/http";
+import {
+  getStudentSwRegistration,
+  registerStudentSw,
+} from "@/lib/student-sw";
 
 type Note = {
   id: string;
@@ -27,9 +31,7 @@ async function enablePush() {
     throw new Error("Notifications are not supported in this browser.");
   }
 
-  const reg = await navigator.serviceWorker.register("/app/sw.js", {
-    scope: "/app",
-  });
+  const reg = await registerStudentSw();
   await navigator.serviceWorker.ready;
 
   const perm = await Notification.requestPermission();
@@ -53,7 +55,7 @@ async function enablePush() {
 
 async function disablePush() {
   if ("serviceWorker" in navigator) {
-    const reg = await navigator.serviceWorker.getRegistration("/app");
+    const reg = await getStudentSwRegistration();
     const sub = await reg?.pushManager.getSubscription();
     if (sub) {
       await api("/api/push/register", {
