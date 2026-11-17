@@ -55,41 +55,49 @@ export default function StudentPlansPage() {
       studentCacheInvalidate("plans:");
       studentCacheInvalidate("home:");
     }
-    const [planData, settings, tomorrowMenu] = await Promise.all([
-      cachedStudentFetch(
-        "plans:list",
-        () => api<{ plans: PlanRow[] }>("/api/plans"),
-        force ? 0 : 45_000
-      ),
-      cachedStudentFetch(
-        "plans:settings",
-        () => api<{ settings: Record<string, string> }>("/api/settings"),
-        force ? 0 : 60_000
-      ),
-      api<{ items: MenuItem[] }>(`/api/menu?date=${day}`),
-    ]);
+    try {
+      const [planData, settings, tomorrowMenu] = await Promise.all([
+        cachedStudentFetch(
+          "plans:list",
+          () => api<{ plans: PlanRow[] }>("/api/plans"),
+          force ? 0 : 45_000
+        ).catch(() => ({ plans: [] as PlanRow[] })),
+        cachedStudentFetch(
+          "plans:settings",
+          () => api<{ settings: Record<string, string> }>("/api/settings"),
+          force ? 0 : 60_000
+        ).catch(() => ({ settings: {} as Record<string, string> })),
+        api<{ items: MenuItem[] }>(`/api/menu?date=${day}`).catch(() => ({
+          items: [] as MenuItem[],
+        })),
+      ]);
 
-    const merged: Record<MealType, MenuItem[]> = {
-      breakfast: [],
-      lunch: [],
-      dinner: [],
-    };
-    for (const item of tomorrowMenu.items ?? []) {
-      merged[item.meal_type as MealType]?.push(item);
-    }
-    setMenuByMeal(merged);
-    setPlans(planData.plans ?? []);
-    setSelected({});
-    setQty({});
+      const merged: Record<MealType, MenuItem[]> = {
+        breakfast: [],
+        lunch: [],
+        dinner: [],
+      };
+      for (const item of tomorrowMenu.items ?? []) {
+        merged[item.meal_type as MealType]?.push(item);
+      }
+      setMenuByMeal(merged);
+      setPlans(planData.plans ?? []);
+      setSelected({});
+      setQty({});
 
-    if (settings.settings) {
-      setCutoffs({
-        breakfast: settings.settings.breakfast_cutoff,
-        lunch: settings.settings.lunch_cutoff,
-        dinner: settings.settings.dinner_cutoff,
-      });
+      if (settings.settings) {
+        setCutoffs({
+          breakfast:
+            settings.settings.breakfast_cutoff || DEFAULT_CUTOFFS.breakfast,
+          lunch: settings.settings.lunch_cutoff || DEFAULT_CUTOFFS.lunch,
+          dinner: settings.settings.dinner_cutoff || DEFAULT_CUTOFFS.dinner,
+        });
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Could not load plans");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {

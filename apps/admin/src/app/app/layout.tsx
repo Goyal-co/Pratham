@@ -17,12 +17,17 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "AHARIVA",
+    title: "Ahariva",
     statusBarStyle: "default",
   },
   icons: {
-    icon: [{ url: "/icons/192", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/192", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 
@@ -31,7 +36,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#FC8019",
+  themeColor: "#9BB08D",
 };
 
 export default function StudentLayout({

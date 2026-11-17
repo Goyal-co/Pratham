@@ -45,10 +45,15 @@ export default function StudentWalletPage() {
   const [showHow, setShowHow] = useState(false);
 
   const load = useCallback(async () => {
-    const data = await api<{ account: Account; ledger: Ledger[] }>("/api/account");
-    setAccount(data.account);
-    setLedger(data.ledger ?? []);
-    setLoading(false);
+    try {
+      const data = await api<{ account: Account; ledger: Ledger[] }>(
+        "/api/account"
+      );
+      setAccount(data.account);
+      setLedger(data.ledger ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -66,6 +71,7 @@ export default function StudentWalletPage() {
           Number(l.amount) > 0
         );
       if (filter === "refunds") return l.entry_type.includes("refund");
+      if (filter === "referrals") return l.entry_type === "referral_credit";
       if (filter === "adjustments") return l.entry_type === "adjustment";
       return true;
     });
@@ -142,6 +148,7 @@ export default function StudentWalletPage() {
             ["all", "All"],
             ["charges", "Meals"],
             ["payments", "Payments"],
+            ["referrals", "Referrals"],
             ["refunds", "Refunds"],
           ] as const
         ).map(([id, label]) => (

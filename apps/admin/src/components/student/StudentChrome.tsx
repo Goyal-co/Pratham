@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { EnablePush } from "./EnablePush";
+import { AppSplash } from "./AppSplash";
 import { InstallHint } from "./InstallHint";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 
@@ -112,13 +112,15 @@ export function StudentChrome({ children }: { children: React.ReactNode }) {
       match: (p: string) =>
         p.includes("/profile") ||
         p.includes("/notifications") ||
-        p.includes("/wallet"),
+        p.includes("/wallet") ||
+        p.includes("/refer"),
     },
   ];
 
   if (auth) {
     return (
       <div className="student-shell auth">
+        <AppSplash />
         <div className="student-main" style={{ width: "100%" }}>
           {children}
         </div>
@@ -128,9 +130,9 @@ export function StudentChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="student-shell">
+      <AppSplash />
       <div className="student-main">
         <InstallHint />
-        <EnablePush />
         {children}
       </div>
       <nav className="student-tabs" aria-label="Student">

@@ -51,6 +51,10 @@ export function studentRewritePath(pathname: string): string | null {
     "/wallet": "/app/wallet",
     "/profile": "/app/profile",
     "/notifications": "/app/notifications",
+    "/refer": "/app/refer",
+    "/referrals": "/app/refer",
+    "/meals": "/app/meals",
+    "/menu": "/app/menu",
   };
   if (map[pathname]) return map[pathname];
   return null;

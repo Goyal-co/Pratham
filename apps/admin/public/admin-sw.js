@@ -31,8 +31,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || "Ahariva Admin", {
       body: payload.body || "",
-      icon: "/icons/192",
-      badge: "/icons/192",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
       data: payload.data || {},
     })
   );

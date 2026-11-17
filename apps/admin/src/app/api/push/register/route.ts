@@ -29,5 +29,45 @@ export async function POST(req: NextRequest) {
      returning id, platform, updated_at`,
     [user.id, token, platform]
   );
-  return json({ token: rows[0] });
+  return json({ token: rows[0], enabled: true });
+}
+
+/** Remove push subscription(s) for this user. */
+export async function DELETE(req: NextRequest) {
+  const user = await getUserFromRequest(req);
+  if (!user) return error("Unauthorized", 401);
+
+  let body: { subscription?: unknown; token?: string; all?: boolean } = {};
+  try {
+    body = await req.json();
+  } catch {
+    /* empty body = clear all web tokens for user */
+  }
+
+  if (body.all || (!body.subscription && !body.token)) {
+    await query(`delete from push_tokens where user_id = $1`, [user.id]);
+    return json({ enabled: false, cleared: true });
+  }
+
+  const token = body.subscription
+    ? JSON.stringify(body.subscription)
+    : String(body.token);
+  await query(`delete from push_tokens where user_id = $1 and token = $2`, [
+    user.id,
+    token,
+  ]);
+  return json({ enabled: false });
+}
+
+export async function GET(req: NextRequest) {
+  const user = await getUserFromRequest(req);
+  if (!user) return error("Unauthorized", 401);
+  const { rows } = await query(
+    `select id, platform, updated_at from push_tokens where user_id = $1 order by updated_at desc`,
+    [user.id]
+  );
+  return json({
+    enabled: rows.length > 0,
+    tokens: rows,
+  });
 }

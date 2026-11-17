@@ -26,7 +26,6 @@ import {
   nextOrderableMeal,
   SERVING_WINDOWS,
 } from "@/lib/student-ui";
-import { AharivaLogo } from "@/components/student/AharivaLogo";
 import { MealPicker } from "@/components/student/MealPicker";
 import { useNowTicker } from "@/components/student/NowTicker";
 
@@ -272,9 +271,6 @@ export default function StudentHomePage() {
   if (loading) {
     return (
       <div>
-        <div className="v2-brand-mark">
-          <AharivaLogo height={32} />
-        </div>
         <div className="student-skeleton" style={{ width: "55%", height: 28 }} />
         <div className="student-skeleton" style={{ height: 200 }} />
       </div>
@@ -289,9 +285,6 @@ export default function StudentHomePage() {
 
       <div className="v2-home-head">
         <div>
-          <div className="v2-brand-mark">
-            <AharivaLogo height={32} />
-          </div>
           <h1>
             {greetingForNow(now)}, {firstName}!
           </h1>
