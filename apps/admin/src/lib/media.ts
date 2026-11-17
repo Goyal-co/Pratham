@@ -5,7 +5,6 @@ import {
   DeleteObjectCommand,
   PutObjectCommand,
   S3Client,
-  type ObjectCannedACL,
 } from "@aws-sdk/client-s3";
 
 const ALLOWED = new Set([
@@ -16,7 +15,7 @@ const ALLOWED = new Set([
 ]);
 
 const MAX_BYTES = 4 * 1024 * 1024; // 4MB
-const KEY_PREFIX = "menu";
+const KIND_PREFIX = "menu";
 
 export type MediaDriver = "blob" | "s3" | "local";
 
@@ -28,6 +27,12 @@ export type StoredImage = {
   driver: MediaDriver;
   key: string;
 };
+
+function env(name: string) {
+  const raw = process.env[name];
+  if (raw == null) return "";
+  return raw.trim().replace(/^["']|["']$/g, "");
+}
 
 export function assertImageFile(file: File) {
   if (!ALLOWED.has(file.type)) {
@@ -42,87 +47,83 @@ function safeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "image";
 }
 
+/** Normalized S3 key prefix from S3_PREFIX (e.g. Ahariva). */
+function s3KeyPrefix() {
+  return env("S3_PREFIX").replace(/^\/+|\/+$/g, "");
+}
+
 function objectKey(filename: string) {
-  return `${KEY_PREFIX}/${filename}`;
+  const prefix = s3KeyPrefix();
+  const base = `${KIND_PREFIX}/${filename}`;
+  return prefix ? `${prefix}/${base}` : base;
 }
 
 function hasBlob() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
+  return Boolean(env("BLOB_READ_WRITE_TOKEN"));
 }
 
 function hasS3() {
-  const bucket = process.env.S3_BUCKET?.trim();
-  const access =
-    process.env.S3_ACCESS_KEY_ID?.trim() ||
-    process.env.AWS_ACCESS_KEY_ID?.trim();
-  const secret =
-    process.env.S3_SECRET_ACCESS_KEY?.trim() ||
-    process.env.AWS_SECRET_ACCESS_KEY?.trim();
-  return Boolean(bucket && access && secret);
+  return Boolean(
+    env("S3_BUCKET") &&
+      env("S3_REGION") &&
+      env("S3_ACCESS_KEY_ID") &&
+      env("S3_SECRET_ACCESS_KEY")
+  );
 }
 
-/** Resolve active driver: MEDIA_DRIVER override, else Blob → S3 → local. */
+/** Resolve active driver: MEDIA_DRIVER override, else S3 → Blob → local. */
 export function resolveMediaDriver(): MediaDriver {
-  const forced = (process.env.MEDIA_DRIVER || "auto").trim().toLowerCase();
+  const forced = (env("MEDIA_DRIVER") || "auto").toLowerCase();
   if (forced === "blob" || forced === "s3" || forced === "local") {
     if (forced === "blob" && !hasBlob()) {
       throw new Error("MEDIA_DRIVER=blob but BLOB_READ_WRITE_TOKEN is missing");
     }
     if (forced === "s3" && !hasS3()) {
       throw new Error(
-        "MEDIA_DRIVER=s3 but S3_BUCKET / access keys are incomplete"
+        "MEDIA_DRIVER=s3 but S3_REGION / S3_BUCKET / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY are incomplete"
       );
     }
     return forced;
   }
-  if (hasBlob()) return "blob";
   if (hasS3()) return "s3";
+  if (hasBlob()) return "blob";
   return "local";
 }
 
-function s3Config() {
-  const bucket = process.env.S3_BUCKET!.trim();
-  const region =
-    process.env.S3_REGION?.trim() ||
-    process.env.AWS_REGION?.trim() ||
-    "ap-south-1";
-  const accessKeyId = (
-    process.env.S3_ACCESS_KEY_ID ||
-    process.env.AWS_ACCESS_KEY_ID ||
-    ""
-  ).trim();
-  const secretAccessKey = (
-    process.env.S3_SECRET_ACCESS_KEY ||
-    process.env.AWS_SECRET_ACCESS_KEY ||
-    ""
-  ).trim();
-  const endpoint = process.env.S3_ENDPOINT?.trim() || undefined;
-  const forcePathStyle =
-    process.env.S3_FORCE_PATH_STYLE === "1" ||
-    process.env.S3_FORCE_PATH_STYLE === "true" ||
-    Boolean(endpoint);
-  const publicBase = process.env.S3_PUBLIC_URL?.trim().replace(/\/$/, "");
+export function getS3ClientConfig() {
+  if (!hasS3()) {
+    throw new Error("S3 is not configured");
+  }
+  const bucket = env("S3_BUCKET");
+  const region = env("S3_REGION") || "ap-south-1";
+  const accessKeyId = env("S3_ACCESS_KEY_ID");
+  const secretAccessKey = env("S3_SECRET_ACCESS_KEY");
 
   const client = new S3Client({
     region,
-    endpoint,
-    forcePathStyle,
     credentials: { accessKeyId, secretAccessKey },
   });
 
-  return { client, bucket, region, endpoint, forcePathStyle, publicBase };
+  return { client, bucket, region };
 }
 
+/** True when key is under configured S3_PREFIX/menu (path traversal safe). */
+export function isAllowedS3MediaKey(key: string) {
+  if (!key || key.includes("..") || key.startsWith("/")) return false;
+  const prefix = s3KeyPrefix();
+  const allowedRoot = prefix ? `${prefix}/${KIND_PREFIX}/` : `${KIND_PREFIX}/`;
+  return key.startsWith(allowedRoot);
+}
+
+/**
+ * Serve via same-origin proxy — bucket is private (Block Public Access).
+ * Browser URLs: /api/media/file/<S3_PREFIX>/menu/<file>
+ */
 function publicS3Url(key: string): string {
-  const { bucket, region, endpoint, forcePathStyle, publicBase } = s3Config();
-  if (publicBase) return `${publicBase}/${key}`;
-  if (endpoint) {
-    const base = endpoint.replace(/\/$/, "");
-    return forcePathStyle
-      ? `${base}/${bucket}/${key}`
-      : `${base.replace("://", `://${bucket}.`)}/${key}`;
-  }
-  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+  return `/api/media/file/${key
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/")}`;
 }
 
 async function putLocal(
@@ -131,8 +132,8 @@ async function putLocal(
   contentType: string,
   byteSize: number
 ): Promise<StoredImage> {
-  const key = objectKey(filename);
-  const dir = path.join(process.cwd(), "public", "uploads", KEY_PREFIX);
+  const key = `${KIND_PREFIX}/${filename}`;
+  const dir = path.join(process.cwd(), "public", "uploads", KIND_PREFIX);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, filename), buffer);
   return {
@@ -151,11 +152,11 @@ async function putBlob(
   contentType: string,
   byteSize: number
 ): Promise<StoredImage> {
-  const key = objectKey(filename);
+  const key = `${KIND_PREFIX}/${filename}`;
   const blob = await put(key, buffer, {
     access: "public",
     contentType,
-    token: process.env.BLOB_READ_WRITE_TOKEN,
+    token: env("BLOB_READ_WRITE_TOKEN"),
   });
   return {
     url: blob.url,
@@ -173,17 +174,14 @@ async function putS3(
   contentType: string,
   byteSize: number
 ): Promise<StoredImage> {
-  const { client, bucket } = s3Config();
+  const { client, bucket } = getS3ClientConfig();
   const key = objectKey(filename);
-  const acl = process.env.S3_OBJECT_ACL?.trim() as ObjectCannedACL | undefined;
   await client.send(
     new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       Body: buffer,
       ContentType: contentType,
-      // Only set when your bucket still uses ACLs (many modern buckets do not).
-      ...(acl ? { ACL: acl } : {}),
       CacheControl: "public, max-age=31536000, immutable",
     })
   );
@@ -197,7 +195,7 @@ async function putS3(
   };
 }
 
-/** Upload to Blob, S3, or local public/uploads based on env. */
+/** Upload to S3, Blob, or local public/uploads based on env. */
 export async function storeMenuImage(file: File): Promise<StoredImage> {
   assertImageFile(file);
   const filename = `${Date.now()}-${safeName(file.name)}`;
@@ -206,13 +204,14 @@ export async function storeMenuImage(file: File): Promise<StoredImage> {
   const buffer = Buffer.from(await file.arrayBuffer());
   const driver = resolveMediaDriver();
 
-  if (driver === "blob") return putBlob(filename, buffer, contentType, byteSize);
   if (driver === "s3") return putS3(filename, buffer, contentType, byteSize);
+  if (driver === "blob") return putBlob(filename, buffer, contentType, byteSize);
   return putLocal(filename, buffer, contentType, byteSize);
 }
 
 function driverFromUrl(url: string): MediaDriver {
   if (url.startsWith("/uploads/")) return "local";
+  if (url.startsWith("/api/media/file/")) return "s3";
   if (
     url.includes("blob.vercel-storage.com") ||
     url.includes("vercel-storage.com")
@@ -227,11 +226,29 @@ function keyFromUrlOrFilename(url: string, filename: string): string {
     if (url.startsWith("/uploads/")) {
       return url.replace(/^\/uploads\//, "");
     }
-    const u = new URL(url);
-    const parts = u.pathname.replace(/^\/+/, "").split("/");
-    // path-style: /bucket/menu/file → drop bucket if first segment
-    const idx = parts.findIndex((p) => p === KEY_PREFIX);
+    if (url.startsWith("/api/media/file/")) {
+      return url
+        .replace(/^\/api\/media\/file\//, "")
+        .split("/")
+        .map((p) => decodeURIComponent(p))
+        .join("/");
+    }
+    const u = new URL(url, "http://localhost");
+    const parts = u.pathname.replace(/^\/+/, "").split("/").map(decodeURIComponent);
+    const fileIdx = parts.indexOf("file");
+    if (parts[0] === "api" && parts[1] === "media" && fileIdx === 2) {
+      return parts.slice(3).join("/");
+    }
+    const prefix = s3KeyPrefix();
+    if (prefix && parts[0] === prefix) {
+      return parts.join("/");
+    }
+    const idx = parts.findIndex((p) => p === KIND_PREFIX);
     if (idx >= 0) return parts.slice(idx).join("/");
+    if (parts[0] === env("S3_BUCKET") && parts.length > 1) {
+      return parts.slice(1).join("/");
+    }
+    return parts.join("/");
   } catch {
     /* fall through */
   }
@@ -256,7 +273,7 @@ export async function deleteStoredImage(url: string, filename: string) {
   if (driver === "blob") {
     if (!hasBlob()) return;
     try {
-      await del(url, { token: process.env.BLOB_READ_WRITE_TOKEN });
+      await del(url, { token: env("BLOB_READ_WRITE_TOKEN") });
     } catch {
       /* ignore remote delete failures */
     }
@@ -265,7 +282,7 @@ export async function deleteStoredImage(url: string, filename: string) {
 
   if (!hasS3()) return;
   try {
-    const { client, bucket } = s3Config();
+    const { client, bucket } = getS3ClientConfig();
     await client.send(
       new DeleteObjectCommand({
         Bucket: bucket,
