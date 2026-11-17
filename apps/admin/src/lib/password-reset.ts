@@ -59,12 +59,13 @@ export async function sendResetEmail(opts: {
   resetUrl: string;
   name?: string | null;
 }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from =
-    process.env.EMAIL_FROM ||
-    process.env.VAPID_SUBJECT?.replace(/^mailto:/i, "") ||
-    "noreply@tiffin.local";
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const fromRaw = process.env.EMAIL_FROM?.trim();
   if (!apiKey) return { sent: false as const, reason: "email_not_configured" };
+  if (!fromRaw || !fromRaw.includes("@")) {
+    return { sent: false as const, reason: "email_from_missing" };
+  }
+  const from = fromRaw.includes("<") ? fromRaw : `Ahariva <${fromRaw}>`;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -73,7 +74,7 @@ export async function sendResetEmail(opts: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: from.includes("@") ? `Ahariva <${from}>` : from,
+      from,
       to: [opts.to],
       subject: "Reset your Ahariva password",
       html: `<p>Hi ${opts.name || "there"},</p>

@@ -2,43 +2,35 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/http";
 import { AharivaLogo } from "@/components/student/AharivaLogo";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 
 export default function StudentForgotPasswordPage() {
-  const router = useRouter();
   const base = useStudentBase();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setDone(null);
     try {
       const data = await api<{
         ok: boolean;
-        resetPath?: string;
         message?: string;
       }>("/api/auth/forgot-password", {
         method: "POST",
         json: { email, phone },
       });
-      if (data.resetPath) {
-        // Prefer student-base path when on subdomain
-        const token = new URL(data.resetPath, "http://local").searchParams.get(
-          "token"
-        );
-        router.push(
-          `${studentHref(base, "/login/reset")}${token ? `?token=${token}` : ""}`
-        );
-        return;
-      }
-      setError(data.message || "Check your details and try again.");
+      setDone(
+        data.message ||
+          "If an account matches, we sent a password reset link to that email."
+      );
       setBusy(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
@@ -51,44 +43,62 @@ export default function StudentForgotPasswordPage() {
       <div className="auth-student-hero">
         <p className="auth-eyebrow">Breakfast · Lunch · Dinner</p>
         <AharivaLogo variant="full" height={56} className="auth-brand-logo" />
-        <p className="auth-tagline">Reset your password with email + phone.</p>
+        <p className="auth-tagline">
+          We email a reset link after email + phone match.
+        </p>
       </div>
 
       <form className="auth-student-card" onSubmit={onSubmit}>
         <h2 className="auth-form-title">Forgot password</h2>
-        <p className="student-muted">
-          Use the phone number from your signup to verify it’s you.
-        </p>
-        <label className="student-field">
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-        </label>
-        <label className="student-field">
-          Phone
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-            autoComplete="tel"
-            placeholder="Registered mobile"
-          />
-        </label>
-        {error && (
-          <p style={{ color: "var(--s-danger)", marginBottom: 12 }}>{error}</p>
+        {done ? (
+          <>
+            <p className="student-muted" style={{ marginBottom: 16 }}>
+              {done}
+            </p>
+            <Link className="student-btn" href={studentHref(base, "/login")}>
+              Back to sign in
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="student-muted">
+              Use the phone number from your signup. The reset link is sent to
+              your email only.
+            </p>
+            <label className="student-field">
+              Email
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </label>
+            <label className="student-field">
+              Phone
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                autoComplete="tel"
+                placeholder="Registered mobile"
+              />
+            </label>
+            {error && (
+              <p style={{ color: "var(--s-danger)", marginBottom: 12 }}>
+                {error}
+              </p>
+            )}
+            <button className="student-btn" disabled={busy} type="submit">
+              {busy ? "Sending…" : "Send reset link"}
+            </button>
+            <Link className="student-link" href={studentHref(base, "/login")}>
+              Back to sign in
+            </Link>
+          </>
         )}
-        <button className="student-btn" disabled={busy} type="submit">
-          {busy ? "Checking…" : "Continue"}
-        </button>
-        <Link className="student-link" href={studentHref(base, "/login")}>
-          Back to sign in
-        </Link>
       </form>
     </div>
   );

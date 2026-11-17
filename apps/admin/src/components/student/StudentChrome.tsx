@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AppSplash } from "./AppSplash";
 import { InstallHint } from "./InstallHint";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
@@ -76,6 +76,7 @@ function IconMe() {
 
 export function StudentChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const base = useStudentBase();
   const auth =
     pathname === "/app/login" ||
@@ -90,7 +91,7 @@ export function StudentChrome({ children }: { children: React.ReactNode }) {
       href: studentHref(base),
       label: "Home",
       icon: <IconHome />,
-      match: (p: string) => p === "/app" || p === "/",
+      match: (p: string) => p === "/app" || p === "/" || p === "/app/",
     },
     {
       href: studentHref(base, "/menu"),
@@ -117,6 +118,25 @@ export function StudentChrome({ children }: { children: React.ReactNode }) {
     },
   ];
 
+  /** Keep tab switches inside the installed PWA (no top-level browser handoff). */
+  function onTabClick(
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) {
+    if (
+      e.defaultPrevented ||
+      e.button !== 0 ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.shiftKey ||
+      e.altKey
+    ) {
+      return;
+    }
+    e.preventDefault();
+    if (pathname !== href) router.push(href);
+  }
+
   if (auth) {
     return (
       <div className="student-shell auth">
@@ -141,6 +161,7 @@ export function StudentChrome({ children }: { children: React.ReactNode }) {
             key={t.href}
             href={t.href}
             className={t.match(pathname) ? "active" : undefined}
+            onClick={(e) => onTabClick(e, t.href)}
           >
             {t.icon}
             <span>{t.label}</span>

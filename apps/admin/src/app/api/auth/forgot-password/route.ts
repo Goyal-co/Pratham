@@ -6,12 +6,40 @@ import {
   normalizePhone,
   sendResetEmail,
 } from "@/lib/password-reset";
+import { isStudentHost } from "@/lib/hosts";
+
+const GENERIC_OK =
+  "If an account matches, we sent a password reset link to that email. Check your inbox (and spam).";
+
+function studentResetUrl(token: string, req: NextRequest) {
+  const studentBase = process.env.NEXT_PUBLIC_STUDENT_URL?.trim();
+  if (studentBase) {
+    return new URL(`/login/reset?token=${token}`, studentBase).toString();
+  }
+  const host = req.headers.get("host") || "";
+  if (isStudentHost(host)) {
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    return `${proto}://${host}/login/reset?token=${token}`;
+  }
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    req.nextUrl.origin ||
+    "http://localhost:3000";
+  return new URL(`/app/login/reset?token=${token}`, origin).toString();
+}
+
+function adminResetUrl(token: string, req: NextRequest) {
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    req.nextUrl.origin ||
+    "http://localhost:3000";
+  return new URL(`/login/reset?token=${token}`, origin).toString();
+}
 
 /**
  * POST { email, phone? }
- * - If the account has a phone on file, phone must match (ownership check).
- * - Returns a one-time resetPath so the client can open the reset form.
- * - Also emails the link when RESEND_API_KEY is configured.
+ * Creates a one-time reset token and emails the link.
+ * Never returns the token / reset path to the client.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -22,6 +50,16 @@ export async function POST(req: NextRequest) {
     .toLowerCase();
   const phoneRaw = String(body.phone || "").trim();
   if (!email) return error("Email is required");
+
+  if (
+    !process.env.RESEND_API_KEY?.trim() ||
+    !process.env.EMAIL_FROM?.trim()?.includes("@")
+  ) {
+    return error(
+      "Password reset email is not configured (RESEND_API_KEY + EMAIL_FROM). Ask an admin for help.",
+      503
+    );
+  }
 
   const { rows } = await query<{
     id: string;
@@ -35,42 +73,25 @@ export async function POST(req: NextRequest) {
   );
   const user = rows[0];
 
-  // Always look successful to avoid account enumeration timing tells in UI copy;
-  // but when credentials match we return a reset path.
+  // Same response whether or not the account exists (no enumeration / no token leak).
   if (!user) {
-    return json({
-      ok: true,
-      message:
-        "If that account exists and details match, you can reset your password.",
-    });
+    return json({ ok: true, message: GENERIC_OK, emailed: false });
   }
 
   const storedPhone = normalizePhone(user.phone || "");
   if (storedPhone) {
     const provided = normalizePhone(phoneRaw);
     if (!provided || provided !== storedPhone) {
-      return error("Email and phone do not match our records", 400);
-    }
-  } else if (!phoneRaw && process.env.NODE_ENV === "production") {
-    // Admin / accounts without phone: require email delivery in production
-    if (!process.env.RESEND_API_KEY) {
-      return error(
-        "No phone on this account. Ask another admin to reset, or configure email (RESEND_API_KEY).",
-        400
-      );
+      // Do not reveal whether email exists; treat as non-match.
+      return json({ ok: true, message: GENERIC_OK, emailed: false });
     }
   }
 
   const { token } = await createResetToken(user.id);
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    req.nextUrl.origin ||
-    "http://localhost:3000";
-  const resetPath =
+  const resetUrl =
     user.role === "admin"
-      ? `/login/reset?token=${token}`
-      : `/app/login/reset?token=${token}`;
-  const resetUrl = new URL(resetPath, origin).toString();
+      ? adminResetUrl(token, req)
+      : studentResetUrl(token, req);
 
   const mail = await sendResetEmail({
     to: user.email,
@@ -78,12 +99,13 @@ export async function POST(req: NextRequest) {
     name: user.full_name,
   });
 
-  return json({
-    ok: true,
-    message: mail.sent
-      ? "Reset link sent to your email. You can also continue here."
-      : "Verified — set a new password next.",
-    resetPath,
-    emailed: mail.sent,
-  });
+  if (!mail.sent) {
+    console.error("forgot-password email failed", mail.reason, user.email);
+    return error(
+      "Could not send the reset email. Try again in a few minutes.",
+      502
+    );
+  }
+
+  return json({ ok: true, message: GENERIC_OK, emailed: true });
 }

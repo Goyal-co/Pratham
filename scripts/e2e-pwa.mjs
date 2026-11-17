@@ -70,7 +70,13 @@ async function main() {
   }
   {
     const s = await req(null, "/manifest.webmanifest");
-    assert("student manifest", s.status === 200 && s.text.includes("/app"));
+    assert(
+      "student manifest",
+      s.status === 200 &&
+        s.text.includes("standalone") &&
+        (s.text.includes('"/app/"') || s.text.includes('"/"')),
+      s.text.slice(0, 120)
+    );
   }
   {
     const sw = await req(null, "/admin-sw.js");
