@@ -1,0 +1,35 @@
+# Production / AWS — app only (use RDS, not container Postgres)
+#
+# Point at your existing secrets file (no need to duplicate vars in this YAML):
+#   ENV_FILE=apps/admin/.env.local docker compose -f docker-compose.aws.yml up -d --build
+#   # or: cp apps/admin/.env.local .env
+#
+# Build needs NEXT_PUBLIC_* available to Compose (from .env / ENV_FILE / shell):
+#   docker compose -f docker-compose.aws.yml build
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_STUDENT_URL: ${NEXT_PUBLIC_STUDENT_URL:-}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    image: ${AHARIVA_IMAGE:-ahariva-admin:latest}
+    container_name: ahariva-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    env_file:
+      - path: ${ENV_FILE:-.env}
+        required: true
+    environment:
+      # Optional compose-only knobs (everything else comes from env_file)
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s

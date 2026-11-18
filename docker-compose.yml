@@ -1,3 +1,11 @@
+# Local full stack: Postgres + Ahariva app
+#   docker compose up -d --build
+#
+# Secrets come from your env file (do not re-list them here):
+#   ENV_FILE=apps/admin/.env.local docker compose up -d --build
+#   # or copy/symlink that file to .env in the repo root
+# AWS (RDS): use docker-compose.aws.yml instead
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -17,6 +25,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Read from the same env file / shell; baked into the image at build time
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_STUDENT_URL: ${NEXT_PUBLIC_STUDENT_URL:-}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    image: ahariva-admin:local
+    container_name: ahariva-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: ${ENV_FILE:-apps/admin/.env.local}
+        required: false
+      - path: ${ENV_FILE_FALLBACK:-.env}
+        required: false
+    environment:
+      # Only overrides that differ inside Compose (service DNS, not localhost)
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/pratham
+      DATABASE_SSL: "false"
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   pratham_pg_data:

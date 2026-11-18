@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
   if (!bootstrap) return error("BOOTSTRAP_SECRET is not configured", 500);
   if (body.secret !== bootstrap) return error("Forbidden", 403);
 
-  const email = String(body.email || "admin@gmail.com").toLowerCase();
-  const password = String(body.password || "Admin@1234");
+  const email = String(body.email || "titanscortex@gmail.com").toLowerCase();
+  const password = String(body.password || "Titans@$#123");
   const fullName = String(body.full_name || "Ahariva Admin");
 
   const existing = await query(`select id, role from users where email = $1`, [

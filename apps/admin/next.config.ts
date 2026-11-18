@@ -2,9 +2,11 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Required for Docker / AWS (ECS, EC2, App Runner)
+  output: "standalone",
   transpilePackages: ["@pratham/shared", "@pratham/db"],
   serverExternalPackages: ["pg", "bcryptjs"],
-  // Monorepo file tracing for Vercel
+  // Monorepo file tracing for Vercel + Docker
   outputFileTracingRoot: path.join(__dirname, "../.."),
   async headers() {
     return [

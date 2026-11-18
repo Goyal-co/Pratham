@@ -201,8 +201,8 @@ async function main() {
     const r = await req(admin, "/api/auth/login", {
       method: "POST",
       body: JSON.stringify({
-        email: "admin@gmail.com",
-        password: "Admin@1234",
+        email: "titanscortex@gmail.com",
+        password: "Titans@$#123",
       }),
     });
     assert("admin login", r.status === 200 && r.json?.user?.role === "admin", JSON.stringify(r.json));

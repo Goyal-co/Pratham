@@ -102,10 +102,14 @@ if (action === "up") {
   const client = pgClient();
   await client.connect();
   try {
-    const email = (process.env.ADMIN_EMAIL || "admin@gmail.com").toLowerCase();
-    const password = process.env.ADMIN_PASSWORD || "Admin@1234";
-    const fullName = process.env.ADMIN_NAME || "Tiffin Admin";
+    const email = (process.env.ADMIN_EMAIL || "titanscortex@gmail.com").toLowerCase();
+    const password = process.env.ADMIN_PASSWORD || "Titans@$#123";
+    const fullName = process.env.ADMIN_NAME || "Titans Cortex";
     const adminHash = await bcrypt.hash(password, 10);
+    // Drop any other admins so only the intended account remains
+    await client.query(`delete from users where role = 'admin' and email <> $1`, [
+      email,
+    ]);
     await client.query(
       `insert into users (email, password_hash, role, full_name)
        values ($1,$2,'admin',$3)
@@ -138,6 +142,8 @@ if (action === "up") {
       ledger_entries,
       notifications,
       push_tokens,
+      password_reset_tokens,
+      media_assets,
       orders,
       fixed_plans,
       student_accounts,
@@ -156,6 +162,39 @@ if (action === "up") {
     for (const a of admins.rows) {
       console.log(` - ${a.email} (${a.full_name || "—"})`);
     }
+  } catch (e) {
+    await client.query("rollback").catch(() => null);
+    throw e;
+  } finally {
+    await client.end();
+  }
+} else if (action === "wipe") {
+  // Full wipe: all users (including admins) + all operational data
+  const client = pgClient();
+  await client.connect();
+  try {
+    await client.query("begin");
+    await client.query(`truncate table
+      reminder_log,
+      menu_day_pubs,
+      plan_cancellations,
+      referrals,
+      ledger_entries,
+      notifications,
+      push_tokens,
+      password_reset_tokens,
+      media_assets,
+      orders,
+      fixed_plans,
+      student_accounts,
+      audit_logs,
+      menu_items,
+      users,
+      app_settings
+      restart identity cascade`);
+    await client.query(`insert into app_settings (id) values (1) on conflict (id) do nothing`);
+    await client.query("commit");
+    console.log("Full wipe complete (all users + data). app_settings reset to defaults.");
   } catch (e) {
     await client.query("rollback").catch(() => null);
     throw e;
@@ -208,7 +247,7 @@ if (action === "up") {
   }
 } else {
   console.log(
-    "Usage: node scripts/db.mjs <up|down|create-db|migrate|seed|seed:admin|seed:demo|purge>"
+    "Usage: node scripts/db.mjs <up|down|create-db|migrate|seed|seed:admin|seed:demo|purge|wipe>"
   );
   process.exit(1);
 }

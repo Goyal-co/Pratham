@@ -44,7 +44,7 @@ npm run db:seed:admin
 
 Default admin login:
 
-- **Admin:** `admin@gmail.com` / `Admin@1234`
+- **Admin:** `titanscortex@gmail.com` / `Titans@$#123`
 
 Override with `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` if needed.
 
@@ -101,7 +101,7 @@ curl -X POST http://localhost:3000/api/cron/generate-plans \
 ```bash
 curl -X POST http://localhost:3000/api/seed-admin \
   -H "Content-Type: application/json" \
-  -d "{\"secret\":\"pratham-bootstrap\",\"email\":\"admin@gmail.com\",\"password\":\"Admin@1234\",\"full_name\":\"Admin\"}"
+  -d "{\"secret\":\"pratham-bootstrap\",\"email\":\"titanscortex@gmail.com\",\"password\":\"Titans@$#123\",\"full_name\":\"Titans Cortex\"}"
 ```
 
 ## Verify locally
@@ -112,6 +112,37 @@ npm run test:all       # smoke + features + PWA
 npm run test:clicks    # Playwright mobile/desktop click-through
 npm run admin:build    # production build (required for Vercel)
 ```
+
+## Deploy with Docker (AWS)
+
+One image runs admin desk + student PWA (`/app`) + `/api/*`.
+
+| File | Use |
+|------|-----|
+| `Dockerfile` | Production Next.js standalone image |
+| `docker-compose.yml` | Local: Postgres **+** app on `:3000` |
+| `docker-compose.aws.yml` | AWS: app only (point `DATABASE_URL` at **RDS**) |
+| `.env.docker.example` | Env template for compose / ECS task def |
+
+```bash
+# Local full stack — reuse apps/admin/.env.local (no need to copy secrets into compose YAML)
+ENV_FILE=apps/admin/.env.local npm run docker:up
+# Compose overrides DATABASE_URL to postgres://...@postgres:5432 for the container network
+
+# AWS (EC2 / ECS / App Runner)
+# 1) Create RDS Postgres, run migrations once from CI or a one-shot task:
+#    DATABASE_URL=postgres://...rds.../pratham?sslmode=require npm run db:migrate
+# 2) Build with your public URLs (NEXT_PUBLIC_* are build-time):
+docker build -t ahariva-admin \
+  --build-arg NEXT_PUBLIC_APP_URL=https://admin.yourdomain.com \
+  --build-arg NEXT_PUBLIC_STUDENT_URL=https://app.yourdomain.com \
+  --build-arg NEXT_PUBLIC_VAPID_PUBLIC_KEY=... .
+# 3) Push to ECR, run with docker-compose.aws.yml or an ECS task.
+#    Health check: GET /api/health
+#    ALB target: port 3000
+```
+
+On AWS prefer **RDS** (not the compose Postgres service), **S3** for media, and store secrets in **Secrets Manager** / SSM.
 
 ## Deploy to Vercel
 

@@ -44,12 +44,12 @@ try {
 
   const target = await client.query(
     "select email, role, full_name, password_hash from users where lower(email) = lower($1)",
-    ["admin@gmail.com"]
+    ["titanscortex@gmail.com"]
   );
   if (!target.rows[0]) {
-    console.log("STATUS: admin@gmail.com NOT FOUND — seeding now...");
+    console.log("STATUS: titanscortex@gmail.com NOT FOUND — seeding now...");
   } else {
-    const ok = await bcrypt.compare("Admin@1234", target.rows[0].password_hash);
+    const ok = await bcrypt.compare("Titans@$#123", target.rows[0].password_hash);
     console.log("Target admin:", {
       email: target.rows[0].email,
       role: target.rows[0].role,
