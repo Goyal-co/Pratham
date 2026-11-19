@@ -42,11 +42,11 @@ npm run db:migrate
 npm run db:seed:admin
 ```
 
-Default admin login:
+Admin login comes from env (`ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` in `apps/admin/.env.local`).
 
-- **Admin:** `titanscortex@gmail.com` / `Titans@$#123`
-
-Override with `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` if needed.
+```bash
+npm run db:seed:admin
+```
 
 Students are **not** seeded — they self-serve signup at `/app/signup`.
 

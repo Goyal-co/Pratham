@@ -22,9 +22,23 @@ export async function POST(req: NextRequest) {
   if (!bootstrap) return error("BOOTSTRAP_SECRET is not configured", 500);
   if (body.secret !== bootstrap) return error("Forbidden", 403);
 
-  const email = String(body.email || "titanscortex@gmail.com").toLowerCase();
-  const password = String(body.password || "Titans@$#123");
-  const fullName = String(body.full_name || "Ahariva Admin");
+  const email = String(
+    body.email || process.env.ADMIN_EMAIL || ""
+  )
+    .trim()
+    .toLowerCase();
+  const password = String(
+    body.password || process.env.ADMIN_PASSWORD || ""
+  );
+  const fullName = String(
+    body.full_name || process.env.ADMIN_NAME || "Ahariva Admin"
+  ).trim();
+  if (!email || !password) {
+    return error(
+      "Set ADMIN_EMAIL and ADMIN_PASSWORD in env (or pass email/password in the body)",
+      400
+    );
+  }
 
   const existing = await query(`select id, role from users where email = $1`, [
     email,

@@ -5,6 +5,31 @@ import bcrypt from "bcryptjs";
 import pg from "pg";
 
 const root = resolve(import.meta.dirname, "..");
+
+/** Load KEY=VAL from env files without overriding existing process.env. */
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) return;
+  for (const line of readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!m) continue;
+    const key = m[1];
+    if (process.env[key] != null && process.env[key] !== "") continue;
+    let val = m[2].trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    process.env[key] = val;
+  }
+}
+
+loadEnvFile(resolve(root, "apps/admin/.env.local"));
+loadEnvFile(resolve(root, ".env"));
+
 const databaseUrl =
   process.env.DATABASE_URL ||
   "postgres://postgres:postgres@localhost:5434/pratham";
@@ -102,9 +127,18 @@ if (action === "up") {
   const client = pgClient();
   await client.connect();
   try {
-    const email = (process.env.ADMIN_EMAIL || "titanscortex@gmail.com").toLowerCase();
-    const password = process.env.ADMIN_PASSWORD || "Titans@$#123";
-    const fullName = process.env.ADMIN_NAME || "Titans Cortex";
+    const email = String(process.env.ADMIN_EMAIL || "")
+      .trim()
+      .toLowerCase();
+    const password = String(process.env.ADMIN_PASSWORD || "");
+    const fullName = String(
+      process.env.ADMIN_NAME || "Ahariva Admin"
+    ).trim();
+    if (!email || !password) {
+      throw new Error(
+        "Set ADMIN_EMAIL and ADMIN_PASSWORD in apps/admin/.env.local (or the environment) before seeding"
+      );
+    }
     const adminHash = await bcrypt.hash(password, 10);
     // Drop any other admins so only the intended account remains
     await client.query(`delete from users where role = 'admin' and email <> $1`, [
