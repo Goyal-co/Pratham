@@ -49,7 +49,6 @@ services:
       # Only overrides that differ inside Compose (service DNS, not localhost)
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/pratham
       DATABASE_SSL: "false"
-      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
     depends_on:
       postgres:
         condition: service_healthy

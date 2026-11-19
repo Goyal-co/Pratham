@@ -1,5 +1,8 @@
 /**
- * Minimal migrate runner for the Docker image (no bcrypt / compose deps).
+ * Idempotent schema ensure for Docker / prod.
+ * Creates enums, tables, indexes if missing (safe to re-run).
+ * Handles DATABASE_URL passwords that contain @.
+ *
  * Usage: node scripts/docker-migrate.mjs
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -20,10 +23,50 @@ function useSsl(url) {
   return /sslmode=require|rds\.amazonaws|neon\.tech|supabase/i.test(url);
 }
 
-const connectionString = databaseUrl
-  .replace(/([?&])sslmode=[^&]*/gi, "$1")
-  .replace(/\?&/, "?")
-  .replace(/[?&]$/, "");
+/** Parse postgres URLs even when password contains @. */
+function parseDatabaseUrl(raw) {
+  const matched = String(raw || "")
+    .trim()
+    .match(
+      /^(?:jdbc:)?postgres(?:ql)?:\/\/([^:\/?#]+):(.+)@([^:\/?#]+)(?::(\d+))?\/([^?\/#]+)(?:\?.*)?$/i
+    );
+  if (!matched) return null;
+  let password = matched[2];
+  try {
+    password = decodeURIComponent(password);
+  } catch {
+    /* keep raw */
+  }
+  return {
+    user: decodeURIComponent(matched[1]),
+    password,
+    host: matched[3],
+    port: matched[4] ? Number(matched[4]) : 5432,
+    database: decodeURIComponent(matched[5]),
+  };
+}
+
+function makeClient() {
+  const ssl = useSsl(databaseUrl)
+    ? { rejectUnauthorized: false }
+    : undefined;
+  const parsed = parseDatabaseUrl(databaseUrl);
+  if (parsed) {
+    return new pg.Client({
+      host: parsed.host,
+      port: Number.isFinite(parsed.port) ? parsed.port : 5432,
+      user: parsed.user,
+      password: parsed.password,
+      database: parsed.database,
+      ssl,
+    });
+  }
+  const connectionString = databaseUrl
+    .replace(/([?&])sslmode=[^&]*/gi, "$1")
+    .replace(/\?&/, "?")
+    .replace(/[?&]$/, "");
+  return new pg.Client({ connectionString, ssl });
+}
 
 const files = [
   "db/migrations/001_init.sql",
@@ -35,13 +78,19 @@ const files = [
   "db/migrations/007_perf_indexes_and_media.sql",
 ];
 
-const client = new pg.Client({
-  connectionString,
-  ssl: useSsl(databaseUrl) ? { rejectUnauthorized: false } : undefined,
-});
-
+const client = makeClient();
 await client.connect();
 try {
+  const exists = await client.query(
+    `select to_regclass('public.users') is not null as ok`
+  );
+  const hadUsers = !!exists.rows[0]?.ok;
+  if (!hadUsers) {
+    console.log("Schema missing (users table not found) — creating tables...");
+  } else {
+    console.log("Ensuring schema is up to date (idempotent migrations)...");
+  }
+
   for (const file of files) {
     const path = resolve(root, file);
     if (!existsSync(path)) {
@@ -51,7 +100,20 @@ try {
     console.log(`Applying ${file}...`);
     await client.query(readFileSync(path, "utf8"));
   }
-  console.log("Migrations complete.");
+
+  await client.query(
+    `insert into app_settings (id) values (1) on conflict (id) do nothing`
+  );
+
+  const tables = await client.query(
+    `select tablename from pg_tables
+     where schemaname = 'public'
+     order by tablename`
+  );
+  console.log(
+    "Migrations complete. Tables:",
+    tables.rows.map((r) => r.tablename).join(", ")
+  );
 } finally {
   await client.end();
 }

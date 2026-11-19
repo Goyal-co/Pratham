@@ -98,13 +98,22 @@ export function getS3ClientConfig() {
   const region = env("S3_REGION") || "ap-south-1";
   const accessKeyId = env("S3_ACCESS_KEY_ID");
   const secretAccessKey = env("S3_SECRET_ACCESS_KEY");
+  const endpoint =
+    env("S3_ENDPOINT") || env("AWS_ENDPOINT_URL") || undefined;
+  const forcePathStyle =
+    env("S3_FORCE_PATH_STYLE") === "1" ||
+    env("S3_FORCE_PATH_STYLE") === "true" ||
+    Boolean(endpoint);
+  const publicBase = env("S3_PUBLIC_URL").replace(/\/$/, "") || undefined;
 
   const client = new S3Client({
     region,
+    endpoint,
+    forcePathStyle,
     credentials: { accessKeyId, secretAccessKey },
   });
 
-  return { client, bucket, region };
+  return { client, bucket, region, endpoint, forcePathStyle, publicBase };
 }
 
 /** True when key is under configured S3_PREFIX/menu (path traversal safe). */
@@ -116,10 +125,21 @@ export function isAllowedS3MediaKey(key: string) {
 }
 
 /**
- * Serve via same-origin proxy — bucket is private (Block Public Access).
- * Browser URLs: /api/media/file/<S3_PREFIX>/menu/<file>
+ * Prefer S3_PUBLIC_URL (CDN / MinIO public) when set; else same-origin proxy.
  */
 function publicS3Url(key: string): string {
+  const { publicBase, bucket, region, endpoint, forcePathStyle } =
+    getS3ClientConfig();
+  if (publicBase) return `${publicBase}/${key}`;
+  if (endpoint) {
+    const base = endpoint.replace(/\/$/, "");
+    return forcePathStyle
+      ? `${base}/${bucket}/${key}`
+      : `${base.replace("://", `://${bucket}.`)}/${key}`;
+  }
+  if (env("S3_PROXY") === "0" || env("S3_PROXY") === "false") {
+    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+  }
   return `/api/media/file/${key
     .split("/")
     .map((part) => encodeURIComponent(part))

@@ -51,9 +51,10 @@ RUN apk add --no-cache libc6-compat \
 COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/static ./apps/admin/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/public ./apps/admin/public
-# Migrations helper (optional: RUN_MIGRATIONS=true)
+# Schema ensure + admin seed (idempotent; runs on container start)
 COPY --from=builder --chown=nextjs:nodejs /app/db ./db
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-migrate.mjs ./scripts/docker-migrate.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-seed-admin.mjs ./scripts/docker-seed-admin.mjs
 COPY --chown=nextjs:nodejs docker/entrypoint.sh ./docker/entrypoint.sh
 
 RUN chmod +x ./docker/entrypoint.sh \

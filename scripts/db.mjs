@@ -40,12 +40,66 @@ function useSsl(url) {
   return /sslmode=require|rds\.amazonaws|neon\.tech|supabase/i.test(url);
 }
 
+/** Parse DATABASE_URL even when password contains @ (e.g. Mst@2069). */
+function parseDatabaseUrl(raw) {
+  const matched = String(raw || "")
+    .trim()
+    .match(
+      /^(?:jdbc:)?postgres(?:ql)?:\/\/([^:\/?#]+):(.+)@([^:\/?#]+)(?::(\d+))?\/([^?\/#]+)(?:\?.*)?$/i
+    );
+  if (!matched) return null;
+  let password = matched[2];
+  try {
+    password = decodeURIComponent(password);
+  } catch {
+    /* keep raw */
+  }
+  return {
+    user: decodeURIComponent(matched[1]),
+    password,
+    host: matched[3],
+    port: matched[4] ? Number(matched[4]) : 5432,
+    database: decodeURIComponent(matched[5]),
+  };
+}
+
 function pgClient() {
-  // Strip sslmode from URL so node-pg doesn't force verify-full (breaks RDS chains)
-  const connectionString = databaseUrl.replace(
-    /([?&])sslmode=[^&]*/i,
-    "$1"
-  ).replace(/\?&/, "?").replace(/[?&]$/, "");
+  const host = process.env.DATABASE_HOST || process.env.PGHOST;
+  const user = process.env.DATABASE_USER || process.env.PGUSER;
+  const password = process.env.DATABASE_PASSWORD ?? process.env.PGPASSWORD;
+  const database = process.env.DATABASE_NAME || process.env.PGDATABASE;
+  const port = Number(process.env.DATABASE_PORT || process.env.PGPORT || 5432);
+  const sslHost = host || databaseUrl;
+  const ssl = useSsl(sslHost) ? { rejectUnauthorized: false } : undefined;
+
+  if (host && user && password != null && database) {
+    return new pg.Client({
+      host,
+      port: Number.isFinite(port) ? port : 5432,
+      user,
+      password,
+      database,
+      ssl,
+    });
+  }
+
+  const parsed = parseDatabaseUrl(databaseUrl);
+  if (parsed) {
+    return new pg.Client({
+      host: parsed.host,
+      port: Number.isFinite(parsed.port) ? parsed.port : 5432,
+      user: parsed.user,
+      password: parsed.password,
+      database: parsed.database,
+      ssl: useSsl(databaseUrl) ? { rejectUnauthorized: false } : undefined,
+    });
+  }
+
+  // Fallback: strip sslmode from URL
+  const connectionString = databaseUrl
+    .replace(/([?&])sslmode=[^&]*/i, "$1")
+    .replace(/\?&/, "?")
+    .replace(/[?&]$/, "");
   return new pg.Client({
     connectionString,
     ssl: useSsl(databaseUrl) ? { rejectUnauthorized: false } : undefined,

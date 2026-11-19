@@ -25,8 +25,9 @@ services:
       - path: ${ENV_FILE:-.env}
         required: true
     environment:
-      # Optional compose-only knobs (everything else comes from env_file)
-      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
+      # Optional: SKIP_MIGRATIONS=true / SKIP_ADMIN_SEED=true
+      SKIP_MIGRATIONS: ${SKIP_MIGRATIONS:-false}
+      SKIP_ADMIN_SEED: ${SKIP_ADMIN_SEED:-false}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s
