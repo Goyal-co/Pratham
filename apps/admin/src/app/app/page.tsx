@@ -12,6 +12,7 @@ import {
   type MenuItem,
 } from "@pratham/shared";
 import { api } from "@/lib/http";
+import { resolvePublicMediaUrl } from "@/lib/media-url";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 import {
   cachedStudentFetch,
@@ -360,7 +361,19 @@ export default function StudentHomePage() {
           </Link>
         </>
       ) : featured ? (
-        <div className={`v2-hero ${featured.meal}`}>
+        <div
+          className={`v2-hero ${featured.meal}${
+            featured.item?.image_url ? " has-photo" : ""
+          }`}
+        >
+          {featured.item?.image_url ? (
+            <img
+              className="v2-hero-photo"
+              src={resolvePublicMediaUrl(featured.item.image_url)}
+              alt=""
+            />
+          ) : null}
+          <div className="v2-hero-scrim" aria-hidden />
           <div className="v2-hero-body">
             <p className="v2-hero-eyebrow">{featured.label}</p>
             <h2>
@@ -402,17 +415,33 @@ export default function StudentHomePage() {
       </div>
       <div className="v2-cats">
         {(["breakfast", "lunch", "dinner"] as MealType[]).map((meal) => {
+          const mealPool = [
+            ...items.filter((i) => i.meal_type === meal),
+            ...tomorrowItems.filter((i) => i.meal_type === meal),
+          ];
           const todayHas = items.some((i) => i.meal_type === meal);
           const tmrwHas = tomorrowItems.some((i) => i.meal_type === meal);
           const openToday = todayHas && isMealOpen(meal, cutoffs, now);
+          const photoUrl =
+            mealPool.find((i) => i.image_url)?.image_url || null;
           return (
             <Link
               key={meal}
               href={studentHref(base, `/menu?meal=${meal}`)}
               className="v2-cat"
             >
-              <div className={`v2-cat-media ${meal}`}>
-                {MEAL_LABELS[meal].slice(0, 1)}
+              <div
+                className={`v2-cat-media ${meal}${photoUrl ? " has-photo" : ""}`}
+              >
+                {photoUrl ? (
+                  <img
+                    src={resolvePublicMediaUrl(photoUrl)}
+                    alt=""
+                    className="v2-cat-photo"
+                  />
+                ) : (
+                  MEAL_LABELS[meal].slice(0, 1)
+                )}
               </div>
               <strong>{MEAL_LABELS[meal]}</strong>
               <span className={openToday || tmrwHas ? undefined : "closed"}>

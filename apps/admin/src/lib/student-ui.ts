@@ -88,6 +88,9 @@ export function nextOrderableMeal(input: {
   const cutoffs = input.cutoffs ?? DEFAULT_CUTOFFS;
   const meals: MealType[] = ["breakfast", "lunch", "dinner"];
 
+  const pickItem = (list: MenuItem[]) =>
+    list.find((i) => Boolean(i.image_url)) || list[0] || null;
+
   for (const meal of meals) {
     if (!isMealOpen(meal, cutoffs, now)) continue;
     const list = input.todayItems.filter((i) => i.meal_type === meal);
@@ -96,7 +99,7 @@ export function nextOrderableMeal(input: {
       meal,
       orderDate: input.today,
       label: `${weekdayLong(input.today)} ${MEAL_LABELS[meal]}`,
-      item: list[0],
+      item: pickItem(list),
       cutoff: cutoffs[meal],
       forTomorrow: false,
     };
@@ -109,7 +112,7 @@ export function nextOrderableMeal(input: {
       meal,
       orderDate: input.tomorrow,
       label: `Tomorrow's ${MEAL_LABELS[meal]}`,
-      item: list[0],
+      item: pickItem(list),
       cutoff: cutoffs[meal],
       forTomorrow: true,
     };
