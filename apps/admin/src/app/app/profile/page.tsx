@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ThemePreferenceControl } from "@/components/ThemePreferenceControl";
 import { api } from "@/lib/http";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 import { deliveryLine, initialsOf } from "@/lib/student-ui";
@@ -335,6 +336,18 @@ export default function StudentProfilePage() {
           <span className="chev">›</span>
         </Link>
       </div>
+
+      <section className="student-panel theme-settings-panel">
+        <div className="student-panel-head">
+          <h2>Appearance</h2>
+        </div>
+        <div className="student-panel-body">
+          <p className="student-muted" style={{ marginTop: 0 }}>
+            Follows your device by default. You can lock Light or Dark anytime.
+          </p>
+          <ThemePreferenceControl />
+        </div>
+      </section>
 
       {edit === "address" && (
         <section ref={addressRef} className="student-panel">

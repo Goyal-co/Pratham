@@ -6,6 +6,12 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import {
+  mediaKeyFromUrl,
+  resolvePublicMediaUrl,
+} from "@/lib/media-url";
+
+export { mediaKeyFromUrl, resolvePublicMediaUrl };
 
 const ALLOWED = new Set([
   "image/jpeg",
@@ -124,10 +130,23 @@ export function isAllowedS3MediaKey(key: string) {
   return key.startsWith(allowedRoot);
 }
 
+function proxyMediaUrl(key: string): string {
+  return `/api/media/file/${key
+    .split("/")
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part))
+    .join("/")}`;
+}
+
 /**
- * Prefer S3_PUBLIC_URL (CDN / MinIO public) when set; else same-origin proxy.
+ * Browser-facing URL. Default: same-origin proxy (works with private MinIO).
+ * Set S3_PROXY=false to store direct S3_PUBLIC_URL / endpoint URLs instead.
  */
 function publicS3Url(key: string): string {
+  const useProxy =
+    env("S3_PROXY") !== "0" && env("S3_PROXY") !== "false";
+  if (useProxy) return proxyMediaUrl(key);
+
   const { publicBase, bucket, region, endpoint, forcePathStyle } =
     getS3ClientConfig();
   if (publicBase) return `${publicBase}/${key}`;
@@ -137,13 +156,7 @@ function publicS3Url(key: string): string {
       ? `${base}/${bucket}/${key}`
       : `${base.replace("://", `://${bucket}.`)}/${key}`;
   }
-  if (env("S3_PROXY") === "0" || env("S3_PROXY") === "false") {
-    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
-  }
-  return `/api/media/file/${key
-    .split("/")
-    .map((part) => encodeURIComponent(part))
-    .join("/")}`;
+  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
 
 async function putLocal(
@@ -242,37 +255,7 @@ function driverFromUrl(url: string): MediaDriver {
 }
 
 function keyFromUrlOrFilename(url: string, filename: string): string {
-  try {
-    if (url.startsWith("/uploads/")) {
-      return url.replace(/^\/uploads\//, "");
-    }
-    if (url.startsWith("/api/media/file/")) {
-      return url
-        .replace(/^\/api\/media\/file\//, "")
-        .split("/")
-        .map((p) => decodeURIComponent(p))
-        .join("/");
-    }
-    const u = new URL(url, "http://localhost");
-    const parts = u.pathname.replace(/^\/+/, "").split("/").map(decodeURIComponent);
-    const fileIdx = parts.indexOf("file");
-    if (parts[0] === "api" && parts[1] === "media" && fileIdx === 2) {
-      return parts.slice(3).join("/");
-    }
-    const prefix = s3KeyPrefix();
-    if (prefix && parts[0] === prefix) {
-      return parts.join("/");
-    }
-    const idx = parts.findIndex((p) => p === KIND_PREFIX);
-    if (idx >= 0) return parts.slice(idx).join("/");
-    if (parts[0] === env("S3_BUCKET") && parts.length > 1) {
-      return parts.slice(1).join("/");
-    }
-    return parts.join("/");
-  } catch {
-    /* fall through */
-  }
-  return objectKey(filename);
+  return mediaKeyFromUrl(url) || objectKey(filename);
 }
 
 /** Best-effort delete from whichever store the URL lives in. */

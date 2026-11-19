@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/http";
+import { resolvePublicMediaUrl } from "@/lib/media-url";
 
 type Asset = {
   id: string;
@@ -65,7 +66,7 @@ export function ImagePicker({
       <div className="image-picker-preview">
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt="Selected dish" />
+          <img src={resolvePublicMediaUrl(value)} alt="Selected dish" />
         ) : (
           <span className="muted">No image</span>
         )}
@@ -146,7 +147,7 @@ export function ImagePicker({
                     title={a.filename}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={a.url} alt={a.filename} />
+                    <img src={resolvePublicMediaUrl(a.url)} alt={a.filename} />
                   </button>
                 ))}
               </div>

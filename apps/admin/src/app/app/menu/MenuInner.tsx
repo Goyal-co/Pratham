@@ -13,6 +13,7 @@ import {
   type MenuItem,
 } from "@pratham/shared";
 import { api } from "@/lib/http";
+import { resolvePublicMediaUrl } from "@/lib/media-url";
 import { studentHref, useStudentBase } from "@/lib/student-paths";
 import {
   addDaysYmd,
@@ -388,7 +389,7 @@ export default function MenuInner() {
               {item.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={item.image_url}
+                  src={resolvePublicMediaUrl(item.image_url)}
                   alt={item.name}
                   className="v2-menu-photo"
                 />
@@ -441,7 +442,7 @@ export default function MenuInner() {
             {sheetItem.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={sheetItem.image_url}
+                src={resolvePublicMediaUrl(sheetItem.image_url)}
                 alt={sheetItem.name}
                 className="v2-menu-photo"
                 style={{ borderRadius: 14, marginBottom: 12 }}

@@ -38,7 +38,18 @@ export async function GET(
         ...(out.ETag ? { ETag: out.ETag } : {}),
       },
     });
-  } catch {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const code =
+      e && typeof e === "object" && "name" in e
+        ? String((e as { name?: string }).name)
+        : "";
+    console.error("media proxy GetObject failed", {
+      key,
+      bucket: config.bucket,
+      code,
+      msg,
+    });
     return error("Not found", 404);
   }
 }

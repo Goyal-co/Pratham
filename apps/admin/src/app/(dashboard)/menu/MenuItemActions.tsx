@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatInr } from "@pratham/shared";
 import { api } from "@/lib/http";
 import { ImagePicker } from "@/components/menu/ImagePicker";
+import { resolvePublicMediaUrl } from "@/lib/media-url";
 
 export type MenuItemRow = {
   id: string;
@@ -154,7 +155,7 @@ export function MenuItemActions({ item }: { item: MenuItemRow }) {
           {item.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={item.image_url}
+              src={resolvePublicMediaUrl(item.image_url)}
               alt=""
               style={{
                 width: 44,

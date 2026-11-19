@@ -36,7 +36,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#9BB08D",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#9BB08D" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1412" },
+  ],
 };
 
 export default function StudentLayout({

@@ -1,4 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import {
+  ThemeProvider,
+  THEME_BOOT_SCRIPT,
+} from "@/components/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,15 +27,25 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#172019",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#172019" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1412" },
+  ],
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <Script
+          id="ahariva-theme-boot"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
+        />
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

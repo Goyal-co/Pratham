@@ -1,4 +1,5 @@
 import { query } from "@pratham/db";
+import { AppearanceSettings } from "./AppearanceSettings";
 import { SettingsForm } from "./SettingsForm";
 import { BroadcastForm } from "./BroadcastForm";
 
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
         Control when students can still place orders (IST), referral rewards, and
         default credit.
       </p>
+      <AppearanceSettings />
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Order acceptance &amp; referrals</h2>
         {settings && <SettingsForm settings={settings} />}

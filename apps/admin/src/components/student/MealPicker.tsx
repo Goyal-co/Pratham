@@ -10,6 +10,7 @@ import {
   type MenuItem,
 } from "@pratham/shared";
 import { formatCutoffLabel } from "@/lib/student-ui";
+import { resolvePublicMediaUrl } from "@/lib/media-url";
 
 type Cutoffs = Record<MealType, string>;
 
@@ -104,7 +105,7 @@ export function MealPicker({
                     {item.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={item.image_url}
+                        src={resolvePublicMediaUrl(item.image_url)}
                         alt=""
                         className="student-combo-thumb"
                       />

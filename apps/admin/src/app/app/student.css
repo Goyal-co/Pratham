@@ -19,6 +19,29 @@
   --s-radius-sm: 12px;
   --s-safe-bottom: env(safe-area-inset-bottom, 0px);
   --s-safe-top: env(safe-area-inset-top, 0px);
+  --s-tabs-bg: rgba(255, 255, 255, 0.94);
+  --s-tab-muted: #8a91a0;
+}
+
+html[data-theme="dark"] {
+  --s-bg: #101412;
+  --s-bg-warm: #16110e;
+  --s-card: #1a1f1c;
+  --s-ink: #eef1ee;
+  --s-muted: #9aa39b;
+  --s-line: #2a322e;
+  --s-line-soft: #222925;
+  --s-accent: #fc8019;
+  --s-accent-dark: #ff9440;
+  --s-accent-soft: #2a1c12;
+  --s-ok: #3dbe7a;
+  --s-ok-soft: #143024;
+  --s-danger: #f07171;
+  --s-danger-soft: #3a1818;
+  --s-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --s-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --s-tabs-bg: rgba(16, 20, 18, 0.94);
+  --s-tab-muted: #8a948c;
 }
 
 * {
@@ -120,11 +143,11 @@
   border-radius: 22px;
   padding: 20px 18px 18px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
-  color: var(--s-ink);
+  color: #202124;
 }
 
 .auth-student-card .student-muted {
-  color: var(--s-muted);
+  color: #737780;
 }
 
 .auth-install {
@@ -145,7 +168,7 @@
 }
 
 .student-shell:not(.auth) .auth-install {
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   color: var(--s-ink);
   box-shadow: var(--s-shadow-sm);
@@ -314,7 +337,7 @@
   padding: 14px;
   border: 1px solid var(--s-line-soft);
   border-radius: 16px;
-  background: #fbfbfc;
+  background: var(--s-line-soft);
   margin-bottom: 10px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -397,7 +420,7 @@
 }
 
 .student-btn.secondary {
-  background: #fff;
+  background: var(--s-card);
   color: var(--s-ink);
   border: 1px solid var(--s-line);
   box-shadow: none;
@@ -433,7 +456,7 @@
   padding: 14px;
   font-size: 16px;
   color: var(--s-ink);
-  background: #fff;
+  background: var(--s-card);
   min-height: 48px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -452,7 +475,7 @@
   bottom: 0;
   z-index: 40;
   display: flex;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--s-tabs-bg);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--s-line);
   padding: 6px 4px var(--s-safe-bottom);
@@ -470,7 +493,7 @@
   min-height: 56px;
   font-size: 10px;
   font-weight: 700;
-  color: #8a91a0;
+  color: var(--s-tab-muted);
   text-decoration: none;
   border-radius: 12px;
   transition: color 0.15s ease, background 0.15s ease;
@@ -525,7 +548,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 12px;
   padding: 3px;
@@ -584,7 +607,7 @@
   flex-shrink: 0;
   min-width: 68px;
   border: 1px solid var(--s-line);
-  background: #fff;
+  background: var(--s-card);
   border-radius: 14px;
   padding: 10px 8px;
   cursor: pointer;
@@ -649,7 +672,7 @@
   padding: 12px;
   border: 1px solid var(--s-line);
   border-radius: 14px;
-  background: #fff;
+  background: var(--s-card);
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -668,8 +691,8 @@
   height: 18px;
   margin-top: 2px;
   border-radius: 999px;
-  border: 2px solid #c5cad3;
-  background: #fff;
+  border: 2px solid var(--s-line);
+  background: var(--s-card);
   flex-shrink: 0;
 }
 
@@ -704,8 +727,8 @@
 }
 
 .student-stat {
-  background: #f7f8fa;
-  border: 1px solid var(--s-line-soft);
+  background: var(--s-line-soft);
+  border: 1px solid var(--s-line);
   border-radius: 12px;
   padding: 10px 12px;
 }
@@ -748,7 +771,7 @@
 .student-cal-day {
   aspect-ratio: 1;
   border: 1px solid var(--s-line-soft);
-  background: #fff;
+  background: var(--s-card);
   border-radius: 10px;
   padding: 4px;
   display: flex;
@@ -832,7 +855,7 @@
 }
 
 .student-seg button.active {
-  background: #fff;
+  background: var(--s-card);
   color: var(--s-ink);
   box-shadow: var(--s-shadow-sm);
 }
@@ -1204,7 +1227,7 @@
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--s-card);
   color: var(--s-accent);
   display: inline-flex;
   align-items: center;
@@ -1237,7 +1260,7 @@
   gap: 12px;
   padding: 14px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   margin-bottom: 12px;
   text-decoration: none;
@@ -1273,7 +1296,7 @@
 }
 
 .v2-schedule-card {
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 14px;
   padding: 14px;
@@ -1321,7 +1344,7 @@
   min-height: 44px;
   border-radius: 12px;
   border: 1px solid var(--s-line);
-  background: #fff;
+  background: var(--s-card);
   color: var(--s-ink);
   font-weight: 700;
   font-size: 0.88rem;
@@ -1361,7 +1384,7 @@
   padding: 10px 8px;
   border-radius: 12px;
   border: 1.5px solid var(--s-line);
-  background: #fff;
+  background: var(--s-card);
   text-align: center;
   cursor: pointer;
   color: var(--s-ink);
@@ -1415,13 +1438,13 @@
 }
 
 .v2-meal-tabs button.active {
-  background: #fff;
+  background: var(--s-card);
   color: var(--s-accent-dark);
   box-shadow: var(--s-shadow-sm);
 }
 
 .v2-menu-card {
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 16px;
   overflow: hidden;
@@ -1513,7 +1536,7 @@
 .v2-sheet-panel {
   width: 100%;
   max-width: 430px;
-  background: #fff;
+  background: var(--s-card);
   border-radius: 20px 20px 0 0;
   padding: 16px 16px calc(18px + var(--s-safe-bottom));
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.15);
@@ -1523,7 +1546,7 @@
   width: 40px;
   height: 4px;
   border-radius: 999px;
-  background: #ddd;
+  background: var(--s-line);
   margin: 0 auto 14px;
 }
 
@@ -1561,7 +1584,7 @@
 }
 
 .v2-empty {
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 16px;
   padding: 28px 18px;
@@ -1598,7 +1621,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 14px;
   padding: 12px;
@@ -1719,7 +1742,7 @@
 }
 
 .v2-refer-stats > div {
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 14px;
   padding: 12px 8px;
@@ -1810,8 +1833,8 @@
   padding: 0 10px 0 36px;
   border: none;
   border-radius: 999px;
-  background: #d8dbe0;
-  color: #5c616a;
+  background: var(--s-line);
+  color: var(--s-muted);
   font-weight: 700;
   font-size: 0.78rem;
   cursor: pointer;
@@ -1831,7 +1854,7 @@
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--s-card);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
   transition: left 0.2s ease;
 }
@@ -1895,7 +1918,7 @@
 }
 
 .v2-list {
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 16px;
   overflow: hidden;
@@ -1911,7 +1934,7 @@
   padding: 14px 14px;
   border: none;
   border-bottom: 1px solid var(--s-line-soft);
-  background: #fff;
+  background: var(--s-card);
   color: var(--s-ink);
   text-decoration: none;
   font-weight: 650;
@@ -1939,8 +1962,12 @@
 
 .v2-list .chev {
   margin-left: auto;
-  color: #b0b4bc;
+  color: var(--s-tab-muted);
   font-weight: 400;
+}
+
+.theme-settings-panel {
+  margin-top: 14px;
 }
 
 .v2-logout {
@@ -1964,7 +1991,7 @@
 }
 
 .v2-wallet-hero {
-  background: #fff;
+  background: var(--s-card);
   border: 1px solid var(--s-line);
   border-radius: 16px;
   padding: 20px 16px;

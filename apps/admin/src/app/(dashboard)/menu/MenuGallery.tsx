@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/http";
+import { resolvePublicMediaUrl } from "@/lib/media-url";
 
 type Asset = {
   id: string;
@@ -92,7 +93,7 @@ export function MenuGallery() {
           {assets.map((a) => (
             <div key={a.id} className="gallery-tile static">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={a.url} alt={a.filename} />
+              <img src={resolvePublicMediaUrl(a.url)} alt={a.filename} />
               <button
                 type="button"
                 className="gallery-delete"
