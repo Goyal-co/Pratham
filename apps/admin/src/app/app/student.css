@@ -285,8 +285,13 @@ html[data-theme="dark"] {
   justify-content: space-between;
   gap: 10px;
   padding: 14px 16px 12px;
-  background: linear-gradient(180deg, #fffdfb 0%, #fff 100%);
+  background: linear-gradient(
+    180deg,
+    var(--s-bg-warm) 0%,
+    var(--s-card) 100%
+  );
   border-bottom: 1px solid var(--s-line-soft);
+  color: var(--s-ink);
 }
 
 .student-panel-head h2 {
@@ -294,6 +299,7 @@ html[data-theme="dark"] {
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: var(--s-ink);
 }
 
 .student-panel-body {
